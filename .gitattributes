@@ -1,0 +1,13 @@
+# Normalize to LF in the repository; Git checks out native line endings.
+# Set before the first commit so collaborators on other platforms do not see
+# whole-file diffs.
+* text=auto eol=lf
+
+# Keep binaries byte-exact
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

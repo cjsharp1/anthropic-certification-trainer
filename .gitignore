@@ -1,0 +1,22 @@
+# Build output — reproduce with `node tools/build.js`
+dist/
+
+# Dependencies (none at runtime; present if tooling is ever added)
+node_modules/
+
+# Editor and OS cruft
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment
+.env
+.env.local
+
+# Scratch
+*.log
+_dump_tmp.js
