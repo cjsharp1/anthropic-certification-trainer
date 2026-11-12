@@ -1,8 +1,11 @@
 # Working in this repo
 
 A single-page browser study app for the four Anthropic Claude certifications.
-No framework, no bundler, no runtime dependencies — `index.html` loads plain
-`<script>` tags in order. Node is used only for build, tests and audits.
+No framework, no bundler, no runtime dependencies — `app/index.html` loads
+plain `<script>` tags in order. Node is used only for build, tests and audits.
+
+The repo root `index.html` is a standalone overview page (GitHub Pages
+landing), not the app. It has no scripts and is not part of the build.
 
 ## Commands
 
@@ -22,7 +25,8 @@ otherwise fail silently by excluding a question from drills.
 
 ## Layout
 
-- `index.html` — markup, all CSS, and the `<script src>` list
+- `index.html` — overview page, published by GitHub Pages; standalone
+- `app/index.html` — the app: markup, all CSS, and the `<script src>` list
 - `src/app.js` — the app (~4.7k lines); `src/sim.js`, `src/strikeout.js`
 - `src/data/data-*.js` — question banks, notes, labs, flashcards, scaffolds
 - `tools/` — build and audits, never shipped
@@ -31,11 +35,13 @@ otherwise fail silently by excluding a question from drills.
 
 ### Adding a data file
 
-Add the `<script src>` to `index.html`. Most suites parse those tags and load
-whatever is listed, so the markup is the registration point. Tools and tests
-refer to files by bare name (`app.js`, `data-notes.js`) and resolve them
-through `tools/paths.js` — moving a file between `src/` and `src/data/` is one
-edit there, not twenty at the call sites.
+Add the `<script src>` to `app/index.html`, as `../src/data/<file>.js`. Most
+suites parse those tags and load whatever is listed, so the markup is the
+registration point. Tools and tests refer to files by bare name (`app.js`,
+`data-notes.js`) and resolve them through `tools/paths.js` — moving a file
+between `src/` and `src/data/` is one edit there, not twenty at the call
+sites. `paths.js` also maps the bare name `index.html` to `app/index.html`
+and resolves `../`-prefixed script paths against `app/`.
 
 ## Question schema
 
@@ -67,7 +73,8 @@ Match what is already there rather than importing outside conventions:
 - Tests assert on behaviour and carry a sentence explaining the trap they
   pin. When a test contradicts an intended change, update the test and its
   explanation deliberately — do not work around it.
-- CSS lives in `index.html`. Font sizes must stay on the 17-step scale;
+- The app's CSS lives in `app/index.html`. Font sizes must stay on the
+  17-step scale;
   `npm run audit:ui` enforces this.
 - A `<button>` does not inherit the page font. State `font-family` explicitly
   on button-like controls or they fall back to the serif reading face.

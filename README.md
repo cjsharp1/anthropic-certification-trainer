@@ -1,8 +1,10 @@
 # Anthropic Certification Trainer
 
 A self-contained study app for the four Anthropic Claude certifications. Open
-`index.html` in a browser — no install, no server, no build step. Progress saves
-to browser localStorage, so use the same browser each time.
+`app/index.html` in a browser — no install, no server, no build step. Progress
+saves to browser localStorage, so use the same browser each time.
+
+The repo root `index.html` is a project overview page, not the app.
 
 > **Unofficial.** This is an independent study aid. It is not affiliated with,
 > endorsed by, or sponsored by Anthropic. “Claude”, “Anthropic” and the
@@ -29,6 +31,13 @@ readiness progression, not a required sequence.
 Developer and Architect Foundations are siblings rather than a sequence: they
 overlap heavily (46 bank questions count toward both), so studying one advances
 the other.
+
+> **Scope: CCAR-F is the developed track.** Most of the work so far has gone
+> into **CCAR-F (Architect — Foundations)** — it has the deepest question
+> coverage, the fullest study notes, and the only exam simulation. The other
+> three are usable but less complete, and will be brought up to the same
+> standard later. If you are studying for CCAO-F, CCDV-F or CCAR-P, treat
+> this as a work in progress rather than finished material.
 
 All four: 120 minutes, scaled 100-1000, **720 to pass**, 12-month validity.
 Credentials expire after 12 months; on-time renewal is a free non-proctored
@@ -364,15 +373,18 @@ after `tools/build.js` if you are about to send the file to someone.
 
 ## Files
 
-The tree separates what ships from what checks it. `index.html` stays at the
-root so the app is still a double-click away; everything it loads lives under
-`src/`.
+The tree separates what ships from what checks it. The app is `app/index.html`,
+still a double-click away; everything it loads lives under `src/`. The root
+`index.html` is the overview page GitHub Pages publishes.
 
 ```
-index.html             app shell, styles, view markup
+index.html             project overview page (GitHub Pages landing)
 README.md
 
-src/                   the app — what index.html loads and build.js inlines
+app/
+  index.html           app shell, styles, view markup
+
+src/                   the app — what app/index.html loads and build.js inlines
   app.js               state, mastery scoring, selection, rendering
   sim.js               Exam Simulation: sittings, scoring, results
   strikeout.js         right-click to rule an option out
@@ -417,7 +429,7 @@ P.resolve('docs/VERIFICATION.md')      // already qualified — left alone
 
 So moving a file between `src/` and `src/data/` is one edit in `paths.js`
 rather than an edit in every script that reads it. Most suites don't even
-name the data files: they parse the `<script src>` tags out of `index.html`
+name the data files: they parse the `<script src>` tags out of `app/index.html`
 and load whatever is listed, so adding a data file to the markup is enough.
 
 ### Running everything

@@ -16,6 +16,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const DATA = path.join(SRC, 'data');
+const APP = path.join(ROOT, 'app');
 
 /* A bare filename -> the directory that holds it. Anything unrecognised is
    treated as project-root relative, which covers index.html, README.md and
@@ -23,9 +24,20 @@ const DATA = path.join(SRC, 'data');
 function resolve(file) {
   if (path.isAbsolute(file)) return file;
   const base = path.basename(file);
-  if (base !== file) return path.join(ROOT, file);   // already qualified
+  if (base !== file) {                                // already qualified
+    // A path lifted from app/index.html's <script src> is relative to that
+    // file, so '../src/app.js' must resolve against app/, not ROOT — which
+    // would land outside the repo. This is what the browser does with it.
+    if (file.startsWith('../')) {
+      return path.resolve(APP, file);
+    }
+    return path.join(ROOT, file);
+  }
   if (/^data-.*\.js$/.test(base)) return path.join(DATA, base);
   if (['app.js', 'sim.js', 'strikeout.js'].includes(base)) return path.join(SRC, base);
+  // 'index.html' means the app. It lives in app/ so the repo root can hold
+  // the overview page GitHub Pages serves; callers still ask by bare name.
+  if (base === 'index.html') return path.join(APP, base);
   return path.join(ROOT, base);
 }
 

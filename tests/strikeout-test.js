@@ -184,10 +184,16 @@ ok(/clearStrikes\(null\)/.test(appSrc) && /clearStrikes\(null\)/.test(simSrc),
 
 H('12. It ships');
 const html = fs.readFileSync(P.resolve('index.html'), 'utf8');
-const iStrike = html.indexOf('strikeout.js');
+const at = file => {
+  const m = html.match(new RegExp('<script src="[^"]*' + file + '"'));
+  return m ? m.index : -1;
+};
+const iStrike = at('strikeout\.js');
 ok(iStrike > -1, 'index.html loads strikeout.js');
-ok(iStrike < html.indexOf('src="src/app.js"'), 'before app.js, which calls into it');
-ok(iStrike < html.indexOf('src="src/sim.js"'), 'and before sim.js');
+const iApp = at('app\.js'), iSim = at('sim\.js');
+ok(iApp > -1 && iSim > -1, 'and loads app.js and sim.js');
+ok(iStrike < iApp, 'before app.js, which calls into it');
+ok(iStrike < iSim, 'and before sim.js');
 ok(/\.opt\.struck/.test(html), 'the struck style is defined');
 ok(/line-through/.test(html), 'and it is a strike-through');
 

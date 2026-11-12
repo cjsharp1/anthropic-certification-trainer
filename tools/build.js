@@ -35,8 +35,9 @@ const tags = [...html.matchAll(/[ \t]*<script src="([^"]+)"><\/script>\r?\n?/g)]
 if (!tags.length) die('no <script src> tags found — has index.html changed shape?');
 
 let inlined = 0, bytes = 0;
+const htmlDir = path.dirname(htmlPath);
 tags.forEach(([tag, src]) => {
-  const p = P.resolve(src);
+  const p = path.resolve(htmlDir, src);
   if (!fs.existsSync(p)) die('missing ' + src + ', referenced by index.html');
   const code = fs.readFileSync(p, 'utf8');
   bytes += code.length;
