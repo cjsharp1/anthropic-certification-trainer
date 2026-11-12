@@ -136,9 +136,12 @@ h2{
 }
 h3{
   font-family:var(--f-disp);font-weight:600;font-size:1.18rem;
-  margin:30px 0 12px;letter-spacing:-.01em;
+  margin:38px 0 10px;letter-spacing:-.01em;
 }
-h3:first-of-type{margin-top:0}
+/* Only an h3 that actually OPENS a section loses its top margin. :first-of-type
+   also matched the first h3 after a list or table, collapsing it against the
+   content above and leaving it unattached to the list it labels. */
+h3:first-child,h2 + h3{margin-top:0}
 p{margin:0 0 15px;max-width:42rem;text-wrap:pretty}
 p:last-child{margin-bottom:0}
 a{color:var(--accent)}
