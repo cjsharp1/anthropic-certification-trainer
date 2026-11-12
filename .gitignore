@@ -17,6 +17,9 @@ desktop.ini
 .env
 .env.local
 
+# Claude Code — local, per-developer overrides (never shared)
+.claude/settings.local.json
+
 # Scratch
 *.log
 _dump_tmp.js
