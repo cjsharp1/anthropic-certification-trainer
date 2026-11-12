@@ -12,7 +12,7 @@ landing), not the app. It has no scripts and is not part of the build.
 ```bash
 npm test            # build dist/, then all 21 suites (tools/run-tests.js)
 npm run validate    # data integrity — run after ANY data-file edit
-npm run check       # validate + UI audit + full suite
+npm run check       # validate + UI audit + HTML check + full suite
 npm run build       # write dist/
 ```
 
@@ -73,6 +73,8 @@ Match what is already there rather than importing outside conventions:
 - Tests assert on behaviour and carry a sentence explaining the trap they
   pin. When a test contradicts an intended change, update the test and its
   explanation deliberately — do not work around it.
+- Both pages must pass `npm run audit:html` (tag nesting, head metadata,
+  alt text, duplicate ids, in-page anchors).
 - The app's CSS lives in `app/index.html`. Font sizes must stay on the
   17-step scale;
   `npm run audit:ui` enforces this.

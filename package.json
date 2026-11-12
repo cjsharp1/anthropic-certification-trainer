@@ -15,7 +15,8 @@
     "dupcheck": "node tools/dupcheck.js",
     "audit:ui": "node tools/ui-audit.js",
     "audit:notes": "node tools/notes-consistency.js",
-    "check": "node tools/validate.js && node tools/ui-audit.js && node tools/run-tests.js"
+    "check": "node tools/validate.js && node tools/ui-audit.js && node tools/html-check.js index.html app/index.html && node tools/run-tests.js",
+    "audit:html": "node tools/html-check.js index.html app/index.html"
   },
   "engines": {
     "node": ">=18"

@@ -405,6 +405,7 @@ tools/                 build and audits — never shipped
   coverage.js          blueprint coverage report
   notes-consistency.js cross-checks notes against the blueprints
   ui-audit.js          font scale and layout consistency
+  html-check.js        tag nesting, head metadata, alt text, anchors
 
 tests/                 behaviour suites (21) — never shipped
   *-test.js
