@@ -31,7 +31,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # Pin a model version rather than a floating alias, so behaviour does not
 # change under you between runs. (Domain: Configuration Management.)
-MODEL=claude-sonnet-5
+MODEL=claude-sonnet-5-5
 
 # Only if you route through a gateway (Portkey, Bedrock proxy, etc). Leave
 # these out to talk to the API directly. Note that a shell-level
@@ -74,7 +74,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
 }
 
 export const client = new Anthropic();           // reads ANTHROPIC_API_KEY
-export const MODEL = process.env.MODEL ?? "claude-sonnet-5";
+export const MODEL = process.env.MODEL ?? "claude-sonnet-5-5";
 `;
 
 const STARTERS = {
@@ -471,7 +471,7 @@ export const CASES: Case[] = [
     "src/index.ts": `import { client, MODEL } from "./client.js";
 import { CASES } from "./cases.js";
 
-const MODEL_B = process.env.MODEL_B ?? "claude-haiku-4-5";
+const MODEL_B = process.env.MODEL_B ?? "claude-haiku-5-5";
 
 interface Row { id: string; model: string; pass: boolean; ms: number; }
 

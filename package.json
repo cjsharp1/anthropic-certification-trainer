@@ -1,0 +1,31 @@
+{
+  "name": "anthropic-certification-trainer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A self-contained browser study app for the four Anthropic Claude certifications. No install, no server, no runtime dependencies.",
+  "license": "MIT",
+  "author": "Chris Sharp",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node tools/build.js",
+    "start": "node tools/build.js --open",
+    "test": "node tools/run-tests.js",
+    "validate": "node tools/validate.js",
+    "coverage": "node tools/coverage.js",
+    "dupcheck": "node tools/dupcheck.js",
+    "audit:ui": "node tools/ui-audit.js",
+    "audit:notes": "node tools/notes-consistency.js",
+    "check": "node tools/validate.js && node tools/ui-audit.js && node tools/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "anthropic",
+    "claude",
+    "certification",
+    "study",
+    "flashcards",
+    "spaced-repetition"
+  ]
+}

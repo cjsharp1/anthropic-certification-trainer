@@ -387,13 +387,14 @@ src/                   the app — what index.html loads and build.js inlines
 tools/                 build and audits — never shipped
   paths.js             maps a bare filename to its folder (see below)
   build.js             writes the single-file dist/ build
+  run-tests.js         runs every suite (what `npm test` calls)
   validate.js          integrity checker for the data files
   dupcheck.js          near-duplicate question detector
   coverage.js          blueprint coverage report
   notes-consistency.js cross-checks notes against the blueprints
   ui-audit.js          font scale and layout consistency
 
-tests/                 behaviour suites (20) — never shipped
+tests/                 behaviour suites (21) — never shipped
   *-test.js
   tts-highlight-regress.js   mutation harness for the highlight suite
 
@@ -421,12 +422,23 @@ and load whatever is listed, so adding a data file to the markup is enough.
 
 ### Running everything
 
+Node 18 or newer. There are no dependencies to install — `npm` is used only
+as a script runner, so `npm install` is unnecessary.
+
+```bash
+npm test            # build dist/, then run all 21 suites
+npm run validate    # data integrity
+npm run build       # write dist/
+npm run check       # validate + UI audit + full suite
+```
+
+`npm test` builds first because `build-test.js` reads `dist/`. To run the
+tools directly instead:
+
 ```bash
 node tools/validate.js       # data integrity
 node tools/build.js          # write dist/
-node tests/build-test.js     # verify what build.js wrote
-
-for f in tests/*-test.js; do node "$f" || echo "FAILED $f"; done
+node tools/run-tests.js      # every suite, any platform
 ```
 
 ## License
