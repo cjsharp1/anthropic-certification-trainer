@@ -2,9 +2,12 @@
  *
  * These questions are opt-in. They carry long scenarios and sentence-length
  * options, so meeting one in a ten-question warm-up is discouraging rather
- * than useful — but they must still count toward coverage, still appear in
- * the exposure chart, and still show up in "questions to revisit" when you
- * get one wrong. That split is what these tests pin.
+ * than useful — but they must still count toward coverage wherever the hard
+ * mode is offered, still appear in the exposure chart, and still show up in
+ * "questions to revisit" when you get one wrong. That split is what these
+ * tests pin. (Where a simulation exists the mode is retired and the questions
+ * live on in the simulation bank, so coverage there leaves them out rather
+ * than counting questions no button can serve — see heldout-test 9.)
  */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const P = require('../tools/paths');
@@ -134,7 +137,11 @@ H('6. But they still count everywhere they should');
 H('7. The button appears only where the tier is populated');
 {
   const app = fs.readFileSync(P.resolve('app.js'), 'utf8');
-  ok(/hardBtn\.hidden = nHard < \d/.test(app), 'the button hides below a threshold');
+  // The threshold lives in hardModeAvailable(), which coverage also reads:
+  // the button and the coverage denominator must agree on what is reachable.
+  ok(/hardBtn\.hidden = !hardModeAvailable\(exam\)/.test(app), 'the button follows hardModeAvailable()');
+  ok(/function hardModeAvailable\(exam\) \{ return hardFor\(exam\)\.length >= \d/.test(app),
+     'which hides it below a threshold');
   const byExam = {};
   Object.keys(EXAMS).forEach(code => {
     byExam[code] = Q.filter(q => qExams(q).includes(code) && isHard(q)).length;

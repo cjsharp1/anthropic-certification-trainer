@@ -56,7 +56,7 @@ function boot(state) {
   const html = fs.readFileSync(P.resolve('index.html'), 'utf8');
   [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].forEach(m =>
     vm.runInContext(fs.readFileSync(P.resolve(m[1]), 'utf8'), ctx, { filename: m[1] }));
-  vm.runInContext('globalThis.__h={poolFor,allFor,pickQuestions,domainMastery,simAvailable,'
+  vm.runInContext('globalThis.__h={poolFor,allFor,reachableFor,hardFor,planFor,pickQuestions,domainMastery,simAvailable,'
     + 'exposureData,exposureChart,QUESTIONS,EXAMS,EXAM_ORDER,S};', ctx);
   return ctx.__h;
 }
@@ -269,6 +269,38 @@ H('8. Exposure charts, one per pool');
   // the two pools must not bleed into each other
   ok(!d.some((b, i) => i > 0 && b.total && h[i] && b.total === h[i].total && b.total > 2),
      'the two charts are built from different pools');
+}
+
+H('9. Coverage is measured against what can be served');
+{
+  /* Coverage used to divide by every question in the domain. The domain
+     drill serves only the drill pool, so on CCAR-P D1 drilling all fifteen
+     drill questions read as 48% — and the study plan's quiz step, which
+     wanted half, could never be ticked by quizzing the domain. Users read
+     the stuck figure as questions never being served. */
+  const A0 = boot(null);
+  const drill = A0.poolFor('CCAR-P').filter(q => q.d === 'p1');
+  const hist = {};
+  drill.forEach(q => { hist[q.id] = [{ correct: true, conf: 'sure', ts: Date.now() - 86400000, exam: 'CCAR-P' }]; });
+  const A = boot({ exam: 'CCAR-P', history: hist, seen: {}, flags: {}, labs: {},
+    streak: { last: null, days: 0 }, sessions: [], read: {}, cards: {}, planOrder: 'blueprint' });
+  const m = A.domainMastery('CCAR-P', 'p1');
+  ok(m.drill.answered === drill.length && m.drill.coverage === 1,
+     'every drill question answered reads as ' + Math.round(m.drill.coverage * 100) + '% of the drill pool');
+  ok(m.coverage < 1 && m.total > m.drill.total,
+     'while whole-domain coverage still counts the held-out remainder (' + m.answered + '/' + m.total + ')');
+  const step = A.planFor('CCAR-P').find(r => r.d.id === 'p1').steps.find(st => st.k === 'quiz');
+  ok(step && step.done, 'and the study plan\'s quiz step can be completed by drilling the domain');
+
+  /* Where a simulation has retired the hard mode, its questions have no entry
+     point, so they leave the denominator; elsewhere the mode is offered and
+     they stay in. The button and the coverage figure share one rule. */
+  const noHard = A0.reachableFor('CCAR-F');
+  ok(A0.hardFor('CCAR-F').length > 0 && !noHard.some(q => q.difficulty === 'hard' || q.difficulty === 'expert'),
+     'CCAR-F coverage leaves out the ' + A0.hardFor('CCAR-F').length + ' hard questions no mode serves');
+  ok(noHard.some(q => q.heldOut), 'but keeps its held-out questions, which the quick quiz serves');
+  ok(A0.reachableFor('CCDV-F').length === A0.allFor('CCDV-F').length,
+     'an exam with the hard mode on offer counts every question');
 }
 
 console.log(fail ? String.fromCharCode(10) + fail + ' FAILURES'

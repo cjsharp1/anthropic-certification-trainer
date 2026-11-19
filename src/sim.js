@@ -68,6 +68,26 @@ function simShuffle(arr) {
   return a;
 }
 
+/* How many finished papers each question has appeared on, for one exam.
+   A submitted attempt records every question on its paper, answered or not,
+   so this counts exposure rather than answers: a question left blank was
+   still shown, and serving it again next time is not new material. */
+function simExposure(exam) {
+  const seen = {};
+  (S.simAttempts || []).forEach(a => {
+    if (a.exam !== exam) return;
+    Object.keys(a.answers || {}).forEach(id => { seen[id] = (seen[id] || 0) + 1; });
+  });
+  return seen;
+}
+
+/* Least-exposed first, in random order within each exposure level. Shuffle
+   first, then a stable sort, so ties stay random rather than settling into
+   bank order. */
+function simLeastSeen(qs, seen) {
+  return simShuffle(qs).sort((a, b) => (seen[a.id] || 0) - (seen[b.id] || 0));
+}
+
 /* ---------- building a sitting ---------- */
 /* The real exam draws 4 scenarios and asks 15 questions on each. The bank is
  * not yet deep enough for that on every scenario, so we take what each chosen
@@ -88,16 +108,39 @@ function buildSitting(opts) {
   if (!bank.length) return null;
 
   const target = o.target || SIM_TARGET;
+  const perBlock = o.perBlock || SIM_BLOCK;
   const allScn = ((EXAMS[exam] || {}).scenarios || []).map(s => s.id);
   const withQs = allScn.filter(id => bank.some(q => q.scn === id));
-  const chosen = simShuffle(withQs).slice(0, o.blocks || SIM_BLOCKS);
+
+  /* Rotate through the bank rather than drawing blind.
+   *
+   * A plain shuffle made every sitting independent of the last, and the bank
+   * is uneven: the two big scenarios hold over 70 questions each, the two
+   * small ones about 22, and every block is capped at 15. A small-scenario
+   * question turned up in nearly half of all sittings, a big-scenario one
+   * in about one in eight, and after twelve sittings a tenth of the bank had
+   * still never appeared.
+   *
+   * So a sitting is built from the current lap: questions at the lowest
+   * exposure across the bank are "fresh", and scenarios are ranked by how
+   * many fresh questions they hold. The count is capped at a block's worth —
+   * any scenario that can fill a whole block with fresh questions is as good
+   * as any other — which keeps a first sitting a random draw of four, as the
+   * real exam's is, and only starts steering once scenarios run dry. */
+  const seen = simExposure(exam);
+  const lap = Math.min(...bank.map(q => seen[q.id] || 0));
+  const fresh = id => Math.min(perBlock,
+    bank.filter(q => q.scn === id && (seen[q.id] || 0) === lap).length);
+  const chosen = simShuffle(withQs)
+    .sort((a, b) => fresh(b) - fresh(a))
+    .slice(0, o.blocks || SIM_BLOCKS);
 
   const used = new Set();
   const blocks = [];
   let short = 0;
   chosen.forEach(scn => {
-    const pool = simShuffle(bank.filter(q => q.scn === scn));
-    const take = pool.slice(0, o.perBlock || SIM_BLOCK);
+    const pool = simLeastSeen(bank.filter(q => q.scn === scn), seen);
+    const take = pool.slice(0, perBlock);
     take.forEach(q => used.add(q.id));
     if (take.length < (o.perBlock || SIM_BLOCK)) short += (o.perBlock || SIM_BLOCK) - take.length;
     blocks.push({ scn, context: simContext(scn, exam), questions: take, filler: false });
@@ -107,7 +150,7 @@ function buildSitting(opts) {
   let filled = 0;
   const want = target - blocks.reduce((n, b) => n + b.questions.length, 0);
   if (want > 0) {
-    const rest = simShuffle(bank.filter(q => !used.has(q.id)));
+    const rest = simLeastSeen(bank.filter(q => !used.has(q.id)), seen);
     const extra = rest.slice(0, want);
     filled = extra.length;
     if (extra.length) {

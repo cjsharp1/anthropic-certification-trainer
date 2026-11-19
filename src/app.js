@@ -92,6 +92,19 @@ function hardFor(exam) { return QUESTIONS.filter(q => qExams(q).includes(exam) &
 /* Everything for an exam, regardless of which pool it belongs to. Used for
    coverage and mastery, where the split is an implementation detail. */
 function allFor(exam) { return QUESTIONS.filter(q => qExams(q).includes(exam)); }
+/* Whether the hard-tier mode is offered. Below five there is not a session's
+   worth; where a simulation exists those questions were folded into its bank
+   and the separate entry point is retired (see renderDash). */
+function hardModeAvailable(exam) { return hardFor(exam).length >= 5 && !simAvailable(exam); }
+/* Every question some mode on offer can actually serve. Coverage is measured
+   against this rather than allFor(): a denominator holding questions no
+   button can reach is a percentage nobody can finish, and it read as the
+   app skipping questions. Held-out questions are always reachable — through
+   the mocks, or the quick quiz where a simulation has replaced them. */
+function reachableFor(exam) {
+  const hard = hardModeAvailable(exam);
+  return allFor(exam).filter(q => hard || !isHard(q));
+}
 function answersOf(q) { return Array.isArray(q.a) ? q.a : [q.a]; }
 
 /* ---------- mastery ---------- */
@@ -116,15 +129,25 @@ function statsFor(qid) {
 }
 
 function domainMastery(exam, domId) {
-  const qs = allFor(exam).filter(q => qDomainFor(q, exam) === domId);
+  const inDom = q => qDomainFor(q, exam) === domId;
+  const qs = reachableFor(exam).filter(inDom);
   let sum = 0, answered = 0;
   qs.forEach(q => { const st = statsFor(q.id); if (st) { sum += st.score; answered++; } });
+  /* The domain drill serves only the drill pool — held-out questions are
+     reserved and the hard tier is opt-in — so "have I worked through this
+     domain" has to be asked of that pool. Against the whole domain, drilling
+     every question on CCAR-P D1 read as 48% and the study plan's quiz step,
+     which needed half, could never be completed by quizzing the domain. */
+  const drillQs = poolFor(exam).filter(inDom);
+  const drillDone = drillQs.filter(q => statsFor(q.id)).length;
   return {
     total: qs.length,
     answered,
     coverage: qs.length ? answered / qs.length : 0,
     score: answered ? sum / answered : null,
-    flagged: !!S.flags[exam + '/' + domId]
+    flagged: !!S.flags[exam + '/' + domId],
+    drill: { total: drillQs.length, answered: drillDone,
+             coverage: drillQs.length ? drillDone / drillQs.length : 0 }
   };
 }
 
@@ -1410,8 +1433,16 @@ function renderAnalytics() {
     const cov = el('td', 'num');
     cov.appendChild(el('div', 'mnum', Math.round(x.m.coverage * 100) + '%'));
     cov.appendChild(meter(x.m.coverage));
+    /* Name the drill pool underneath. Without it, a domain drilled to the
+       last question still shows well short of 100% — the remainder sits in
+       the held-out pool — and that read as questions never being served. */
+    cov.appendChild(el('div', 'muted small',
+      'drills ' + x.m.drill.answered + '/' + x.m.drill.total));
     cov.title = x.m.answered + ' of ' + x.m.total
-      + ' questions in this domain attempted at least once.';
+      + ' questions in this domain attempted at least once. '
+      + x.m.drill.answered + ' of the ' + x.m.drill.total + ' that the domain '
+      + 'drill serves; the rest come up in '
+      + (simAvailable(exam) ? 'the quick quiz.' : 'the mock exams.');
     tr.appendChild(cov);
     const mas = el('td', 'num');
     mas.title = x.m.score === null
@@ -2218,7 +2249,7 @@ function planFor(exam) {
     const steps = [];
     if (note) steps.push({ k: 'read', label: 'Read the notes', done: hasRead(exam, d.id), meta: note.mins + ' min' });
     if (cards.length) steps.push({ k: 'cards', label: 'Drill flashcards', done: due === 0 && cards.some(c => cardState(c).box > 1), meta: due ? due + ' due' : cards.length + ' cards' });
-    steps.push({ k: 'quiz', label: 'Quiz this domain', done: m.coverage >= 0.5 && m.score !== null && m.score >= 0.8, meta: m.score === null ? 'not started' : Math.round(m.score * 100) + '%' });
+    steps.push({ k: 'quiz', label: 'Quiz this domain', done: m.drill.coverage >= 0.5 && m.score !== null && m.score >= 0.8, meta: m.score === null ? 'not started' : Math.round(m.score * 100) + '%' });
     if (labs.length) steps.push({ k: 'lab', label: labs.length > 1 ? 'Build (' + labs.length + ' labs)' : 'Build: ' + labs[0].title, done: labDone > 0, meta: labDone + '/' + labs.length, lab: labs[0] });
 
     const left = steps.filter(s => !s.done).length;
@@ -2556,7 +2587,7 @@ function renderDash() {
   const hardBtn = $('#btnHard');
   if (hardBtn) {
     const nHard = hardFor(exam).length;
-    hardBtn.hidden = nHard < 5 || simAvailable(exam);
+    hardBtn.hidden = !hardModeAvailable(exam);
     hardBtn.textContent = 'Hard questions · ' + Math.min(12, nHard);
   }
 
@@ -2634,7 +2665,7 @@ function renderDash() {
       covSplit.appendChild(el('span', null, 'Drill bank'));
       covSplit.appendChild(el('b', null, Math.round(drillCov * 100) + '%'));
       covSplit.title = Math.round(drillCov * 100) + '% of the '
-        + allFor(exam).length + ' questions in the ' + exam + ' drill bank have '
+        + reachableFor(exam).length + ' questions in the ' + exam + ' drill bank have '
         + 'been attempted at least once, weighted by domain. Drill questions '
         + 'build and check knowledge; they do not feed the projected score.';
     }
@@ -2661,7 +2692,7 @@ function renderDash() {
       ? Math.round(r.coverage * 100) + '% of the ' + simTotal + ' questions in '
         + 'the ' + exam + ' simulation bank have been answered at least once, '
         + 'weighted by domain. This is the pool the projected score comes from.'
-      : Math.round(r.coverage * 100) + '% of the ' + allFor(exam).length
+      : Math.round(r.coverage * 100) + '% of the ' + reachableFor(exam).length
         + ' questions in the ' + exam + ' bank have been attempted at least '
         + 'once, weighted by domain.';
   }
@@ -2672,7 +2703,9 @@ function renderDash() {
   const rows = ex.domains.map(d => ({ d, m: domainMastery(exam, d.id) }));
   rows.forEach(({ d, m }) => {
     const tr = el('div', 'drow');
-    const needs = m.flagged || (m.score !== null && m.score < 0.7) || m.coverage < 0.4;
+    // Breadth is judged on the drill pool: the Drill button beside it serves
+    // nothing else, so a shortfall it cannot close is not something to flag.
+    const needs = m.flagged || (m.score !== null && m.score < 0.7) || m.drill.coverage < 0.4;
 
     const nm = el('div', 'dname');
     const label = el('span', null, d.name);
@@ -2706,7 +2739,9 @@ function renderDash() {
       ? '0 of ' + m.total + ' questions in this domain attempted.'
       : 'Mastery ' + Math.round(sc * 100) + '% · ' + m.answered + ' of '
         + m.total + ' questions attempted ('
-        + Math.round(m.coverage * 100) + '% of the bank).';
+        + Math.round(m.coverage * 100) + '% of the bank). Drill questions: '
+        + m.drill.answered + ' of ' + m.drill.total + '; the rest come up in '
+        + (simAvailable(exam) ? 'the quick quiz.' : 'the mock exams.');
 
     const acts = el('div', 'dacts');
     // Jump straight into this domain's notes — the dashboard is where you
@@ -2729,7 +2764,7 @@ function renderDash() {
 
   // focus panel — what to work on next
   const focus = rows
-    .filter(r2 => r2.m.flagged || r2.m.coverage < 0.5 || (r2.m.score !== null && r2.m.score < 0.7))
+    .filter(r2 => r2.m.flagged || r2.m.drill.coverage < 0.5 || (r2.m.score !== null && r2.m.score < 0.7))
     .sort((a, b) => {
       const pa = (a.m.flagged ? 100 : 0) + a.d.weight * (1 - (a.m.score == null ? 0 : a.m.score));
       const pb = (b.m.flagged ? 100 : 0) + b.d.weight * (1 - (b.m.score == null ? 0 : b.m.score));
@@ -2744,7 +2779,7 @@ function renderDash() {
       const t = el('div', 'ftext');
       t.appendChild(el('strong', null, d.name));
       const reason = m.flagged ? 'You flagged this for review'
-        : m.coverage < 0.5 ? `Only ${Math.round(m.coverage * 100)}% of the bank attempted — ${d.weight}% of the exam`
+        : m.drill.coverage < 0.5 ? `Only ${Math.round(m.drill.coverage * 100)}% of its drill questions attempted — ${d.weight}% of the exam`
         : `Scoring ${Math.round(m.score * 100)}% — ${d.weight}% of the exam`;
       t.appendChild(el('div', 'muted small', reason));
       const acts = el('div', 'dacts');

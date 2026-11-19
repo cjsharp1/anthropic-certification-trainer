@@ -203,6 +203,51 @@ ok(drill.list.every(i => i.q.objectives.some(o => o === 'O01' || o === 'O04')),
 const expect = QS.filter(q => q.objectives.includes('O01') || q.objectives.includes('O04')).length;
 ok(drill.list.length === expect, 'it draws all ' + expect + ' matching questions');
 
+H('8b. Repeated sittings rotate through the bank');
+{
+  /* Sittings used to be independent shuffles. The bank is uneven — two
+     scenarios hold over 70 questions, two about 22, and a block takes 15 — so
+     a small-scenario question appeared in nearly half of all papers and a
+     big-scenario one in about one in eight. Twelve sittings still left a
+     tenth of the bank unseen, which users reported as questions never coming
+     up. Each sitting here is recorded the way simSubmit records it, and the
+     bounds are worst cases over 1000 trials of the rotating builder; a blind
+     shuffle misses them by a wide margin, so these are not flaky by chance. */
+  const saved = O.S.simAttempts;
+  const bank = O.simBank('CCAR-F');
+  // A lap of the bank, plus two sittings of slack for the block structure:
+  // a block cannot mix scenarios, so the last lap never packs perfectly.
+  const enough = Math.ceil(bank.length / O.SIM_TARGET) + 2;
+  let overlapped = 0, unfinished = 0, worst = bank.length;
+  for (let t = 0; t < 40; t++) {
+    O.S.simAttempts = [];
+    const seen = new Set();
+    for (let k = 0; k < enough; k++) {
+      const s = O.buildSitting({});
+      const answers = {};
+      s.list.forEach(i => { answers[i.q.id] = { picked: null, ok: false }; });
+      if (k === 1 && s.list.some(i => seen.has(i.q.id))) overlapped++;
+      s.list.forEach(i => seen.add(i.q.id));
+      O.S.simAttempts.push({ exam: 'CCAR-F', answers });
+    }
+    if (seen.size < bank.length) { unfinished++; worst = Math.min(worst, seen.size); }
+  }
+  ok(overlapped === 0, overlapped ? overlapped + ' second sittings repeated a question from the first'
+                                  : 'a second sitting never repeats the first');
+  ok(unfinished === 0, unfinished
+     ? unfinished + ' of 40 runs left questions unseen after ' + enough + ' sittings (worst ' + worst + ')'
+     : 'every one of ' + bank.length + ' questions appears within ' + enough + ' sittings');
+
+  // With no history the paper is still a random draw of four scenarios, as
+  // the real exam's is: steering must not pin a first sitting to the big ones.
+  O.S.simAttempts = [];
+  const firstScn = new Set();
+  for (let t = 0; t < 60; t++)
+    O.buildSitting({}).blocks.filter(b => !b.filler).forEach(b => firstScn.add(b.scn));
+  ok(firstScn.size === 6, 'first sittings draw from all ' + firstScn.size + ' scenarios');
+  O.S.simAttempts = saved;
+}
+
 H('9. Scoring and the breakdowns');
 const sim = Object.assign(O.buildSitting({}), {
   mode: 'exam', i: 0, answers: {}, flags: {}, revealed: {},
