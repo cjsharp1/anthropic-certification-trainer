@@ -103,7 +103,7 @@ and struck through, never disabled, so you can still pick it if you change your
 mind. Marks clear once the answer is revealed and are never saved between
 sessions. On a keyboard, focus an option and press X.
 
-**Exam Simulation (CCAR-F).** A separate bank of 270 scenario questions, kept
+**Exam Simulation (CCAR-F).** A separate bank of 283 scenario questions, kept
 apart from the fact-recall drills because it is a different kind of exam. A
 sitting draws 4 of the 6 documented scenarios and asks 15 questions on each —
 60 questions in 120 minutes, single-select, long plain-prose stems where two
@@ -304,13 +304,16 @@ node tests/sim-test.js
 Note that `tools/validate.js` covers the recall bank (`QUESTIONS`) only — the
 simulation bank is checked by that suite instead.
 
-The bank holds 270 questions in five sets: the two from the original handoff,
+The bank holds 283 questions in five sets: the two from the original handoff,
 `reference_mock_v6` (128 questions) converted from the mock simulator in
-`reference/`, the 18-question hard tier, and `objective_balance` (62
+`reference/`, the 18-question hard tier, and `objective_balance` (75
 questions) written to even out per-objective coverage — before it, the 37
 score-report objectives ranged from 2 to 24 questions each, which made
 "drill by test objective" far thinner for some objectives than others. Every
-objective now has at least 8. Section 12 of the sim suite checks the floor
+objective now has at least 8. Each question should carry only the objectives
+it actually tests: copying a task statement's whole objective list onto a
+question inflates the counts without adding coverage, and an accuracy review
+had to undo that on eight questions. Section 12 of the sim suite checks the floor
 holds if the bank changes again. Two things about that conversion
 are worth knowing if you ever edit those questions:
 

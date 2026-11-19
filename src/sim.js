@@ -135,12 +135,38 @@ function buildSitting(opts) {
     .sort((a, b) => fresh(b) - fresh(a))
     .slice(0, o.blocks || SIM_BLOCKS);
 
+  /* Some questions teach the same lesson as another, and many of those pairs
+     share a scenario, so one block could hold both and the first would give
+     the second away, so a paper takes one question per family.
+     The sitting that has to finish a lap is the exception: there, a held-back
+     fresh question goes ahead of anything already seen. Holding strictly on
+     every paper left the last fresh duplicates unserved, and about one run in
+     fifty needed an extra sitting to see the whole bank (section 8b of the
+     suite). Relaxing on every paper fixed that but let three papers in four
+     keep a pair. A short paper is worse than a repeated lesson, so held
+     questions still fill a block that nothing else can. */
+  const families = new Set();
+  const lapEnds = bank.filter(q => (seen[q.id] || 0) === lap).length <= target;
+  const pick = (pool, n) => {
+    const out = [], held = [];
+    for (const q of pool) {
+      while (lapEnds && held.length && out.length < n && (seen[held[0].id] || 0) < (seen[q.id] || 0))
+        out.push(held.shift());
+      if (out.length >= n) break;
+      if (q.family && families.has(q.family)) { held.push(q); continue; }
+      out.push(q);
+      if (q.family) families.add(q.family);
+    }
+    for (const q of held) { if (out.length >= n) break; out.push(q); }
+    return out;
+  };
+
   const used = new Set();
   const blocks = [];
   let short = 0;
   chosen.forEach(scn => {
     const pool = simLeastSeen(bank.filter(q => q.scn === scn), seen);
-    const take = pool.slice(0, perBlock);
+    const take = pick(pool, perBlock);
     take.forEach(q => used.add(q.id));
     if (take.length < (o.perBlock || SIM_BLOCK)) short += (o.perBlock || SIM_BLOCK) - take.length;
     blocks.push({ scn, context: simContext(scn, exam), questions: take, filler: false });
@@ -151,7 +177,7 @@ function buildSitting(opts) {
   const want = target - blocks.reduce((n, b) => n + b.questions.length, 0);
   if (want > 0) {
     const rest = simLeastSeen(bank.filter(q => !used.has(q.id)), seen);
-    const extra = rest.slice(0, want);
+    const extra = pick(rest, want);
     filled = extra.length;
     if (extra.length) {
       extra.forEach(q => used.add(q.id));
