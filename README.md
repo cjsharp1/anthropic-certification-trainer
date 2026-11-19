@@ -12,8 +12,10 @@ The repo root `index.html` is a project overview page, not the app.
 > and note here is original work written against the publicly available exam
 > guides — no exam content is reproduced. See [Sources](#sources).
 
-**Sharing it with someone?** Run `node tools/build.js` and send them the single file
-it writes to `dist/`. See [Sharing](#sharing) below.
+**Sharing it with someone?** Send them the
+[latest release download](https://github.com/cjsharp1/anthropic-certification-trainer/releases/latest/download/anthropic-certification-trainer.html),
+or run `node tools/build.js` and send the single file it writes to `dist/`. See
+[Sharing](#sharing) below.
 
 ## Certifications covered
 
@@ -371,6 +373,28 @@ replace their copy whenever you ship an update.
 questions, 27 notes and 19 labs, and that every page still renders — run it
 after `tools/build.js` if you are about to send the file to someone.
 
+### Releases
+
+Every release on GitHub carries the built file as an asset, under the same name
+each time, so this link always serves the newest one:
+
+```
+https://github.com/cjsharp1/anthropic-certification-trainer/releases/latest/download/anthropic-certification-trainer.html
+```
+
+To cut a release, bump the version and push the tag:
+
+```
+npm version minor          # or patch / major — commits package.json and tags v1.1.0
+git push --follow-tags
+```
+
+`.github/workflows/release.yml` runs on any `v*` tag. It runs `npm run check`,
+refuses the tag if it does not match the version in `package.json`, builds, and
+publishes a release with the file attached and notes generated from the commits
+since the previous tag. The build stamps that version into the file's
+`<meta name="generator">`, so a colleague can tell which release they have.
+
 ## Files
 
 The tree separates what ships from what checks it. The app is `app/index.html`,
@@ -412,6 +436,7 @@ tests/                 behaviour suites (21) — never shipped
   tts-highlight-regress.js   mutation harness for the highlight suite
 
 docs/                  VERIFICATION.md — hard-tier source audit
+.github/workflows/     release.yml — publishes the built file on a v* tag
 dist/                  the shareable single file (generated)
 ```
 

@@ -50,10 +50,13 @@ tags.forEach(([tag, src]) => {
 });
 
 /* A build stamp, so a colleague can tell which copy they have when they ask
-   whether their version includes something. */
+   whether their version includes something. The version comes from
+   package.json because that is what a release tag is checked against, so a
+   file downloaded from a release names the same version as its tag. */
 const stamp = new Date().toISOString().slice(0, 10);
+const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 html = html.replace('</head>',
-  '<meta name="generator" content="build.js ' + stamp + '">\n</head>');
+  '<meta name="generator" content="build.js v' + version + ' ' + stamp + '">\n</head>');
 
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.writeFileSync(OUT, html);
