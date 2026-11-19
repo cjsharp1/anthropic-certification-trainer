@@ -81,7 +81,13 @@ const { SIM_QUESTIONS: QS, SIM_OBJECTIVES: OBJ, EXAMS } = O;
 const REP = ctx.SIM_SCORE_REPORT !== undefined ? ctx.SIM_SCORE_REPORT : undefined;
 
 H('1. The imported bank');
-ok(QS.length === 270, 'holds 270 questions, found ' + QS.length);
+/* 283 since 2026-11-18. That day's accuracy review removed objectives that had
+   been copied wholesale onto REF-018, REF-089, REF-090, REF-116, REF-117,
+   REF-047, REF-053 and REF-057. Thirteen objective_balance questions
+   (BAL-063 to BAL-075) were added so O01, O03, O06, O14 and O31 kept the floor
+   section 12 enforces. A changed count means questions arrived or vanished:
+   update this deliberately, not to make the suite pass. */
+ok(QS.length === 283, 'holds 283 questions, found ' + QS.length);
 ok(OBJ.length === 37, 'holds 37 test objectives, found ' + OBJ.length);
 ok(new Set(QS.map(q => q.id)).size === QS.length, 'every question id is unique');
 ok(QS.every(q => q.exam === 'CCAR-F'), 'every question is CCAR-F');
@@ -105,9 +111,11 @@ const domIds = (EXAMS['CCAR-F'].domains || []).map(d => d.id);
 ok(QS.every(q => scnIds.includes(q.scn)), 'every question maps to a known scenario id');
 ok(QS.every(q => q.domains.every(d => domIds.includes(d))), 'every domain maps to a known domain id');
 // The handoff names this scenario differently from the exam guide; if the
-// alias is ever dropped these 10 questions silently vanish from their block.
+// alias is ever dropped its questions silently vanish from their block. 19
+// since 2026-11-18: BAL-073 (a CI review prompt) joined, and REF-070, REF-071,
+// REF-075 and REF-127 left, because nothing in their stems involves CI.
 const ci = QS.filter(q => q.scn === 'ci');
-ok(ci.length === 22, '"Claude Code for CI/CD" maps onto the guide\'s ci scenario (' + ci.length + ' questions)');
+ok(ci.length === 19, '"Claude Code for CI/CD" maps onto the guide\'s ci scenario (' + ci.length + ' questions)');
 { /* Two spellings now resolve to the same id: the first sitting's data
      says "Claude Code for CI/CD" and the reference set uses the guide's
      own "Claude Code for Continuous Integration". Both must land on ci,
@@ -245,6 +253,28 @@ H('8b. Repeated sittings rotate through the bank');
   for (let t = 0; t < 60; t++)
     O.buildSitting({}).blocks.filter(b => !b.filler).forEach(b => firstScn.add(b.scn));
   ok(firstScn.size === 6, 'first sittings draw from all ' + firstScn.size + ' scenarios');
+
+  /* Questions that teach the same lesson share a family, and most families
+     sit in one scenario, so a block could hold two and the first would give
+     the second away. Mid-lap papers must keep families apart; only the paper
+     that finishes a lap may relax it, so that coverage above still holds. */
+  const fam = {};
+  QS.forEach(q => { if (q.family) (fam[q.family] = fam[q.family] || []).push(q.id); });
+  const lonely = Object.keys(fam).filter(f => fam[f].length < 2);
+  ok(Object.keys(fam).length > 0 && !lonely.length, Object.keys(fam).length
+     + ' families, each with at least two questions' + (lonely.length ? ' — alone: ' + lonely.join(' ') : ''));
+  let pairs = 0;
+  for (let t = 0; t < 200; t++) {
+    O.S.simAttempts = [];
+    const f = {};
+    O.buildSitting({}).list.forEach(i => {
+      if (!i.q.family) return;
+      if (f[i.q.family]) pairs++;
+      f[i.q.family] = 1;
+    });
+  }
+  ok(pairs === 0, pairs ? pairs + ' first sittings held two questions from one family'
+                        : 'a first sitting never holds two questions from one family');
   O.S.simAttempts = saved;
 }
 

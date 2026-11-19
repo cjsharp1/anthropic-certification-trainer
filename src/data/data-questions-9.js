@@ -22,7 +22,7 @@ QUESTIONS.push(
   q:"Which conditions should cause your client to retry a request?",
   multi:true, a:[0,2,3],
   opts:["A 429 rate limit response","A 400 invalid request error","A 529 overloaded response","A connection reset before any response arrived"],
-  why:"Rate limits, overload and transport failures are transient and clear on their own. A 400 means the request itself is malformed, so retrying it unchanged produces the identical error and wastes the attempt."},
+  why:"Rate limits, overload and transport failures are transient and clear on their own. A 400 means the request is invalid, or that a spend limit you set has been reached; either way, retrying it unchanged produces the identical error and wastes the attempt."},
 
 { id:"dv-v1-25", exam:"CCDV-F", d:"v1", kind:"scenario",
   q:"Your service must process 50,000 documents by morning with nobody waiting on any single result. What fits?",

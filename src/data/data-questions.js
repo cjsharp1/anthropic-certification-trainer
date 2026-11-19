@@ -326,7 +326,7 @@ const QUESTIONS = [
   q:"Which HTTP status codes indicate a problem your <em>code</em> must fix rather than retry?",
   multi:true, a:[0,1,2],
   opts:["400 invalid request","401 authentication error","403 permission denied","529 overloaded"],
-  why:"400, 401, and 403 are client-side: a malformed request, a bad or missing key, or insufficient permissions. No amount of retrying changes the outcome. 529 signals system-wide overload — transient and genuinely worth retrying with a longer backoff than you'd use for a rate limit."},
+  why:"400, 401, and 403 are client-side: an invalid request (or a spend limit you set), a bad or missing key, or insufficient permissions. No amount of retrying changes the outcome. 529 signals system-wide overload — transient and genuinely worth retrying with a longer backoff than you'd use for a rate limit."},
 
 { id:"dv-v1-02", exam:"CCDV-F", d:"v1", kind:"scenario",
   q:"Your app must show output to the user as it's produced. Which approach, and what must you still handle?",

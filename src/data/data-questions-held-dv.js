@@ -55,7 +55,7 @@ QUESTIONS.push(
         "<code>429</code> rate limited",
         "<code>401</code> authentication failure",
         "<code>529</code> service overloaded"],
-  why:"<code>429</code> and <code>529</code> are transient — the same request can succeed later. A <code>400</code> is malformed and a <code>401</code> has bad credentials; both fail identically on every retry, so retrying only wastes time."},
+  why:"<code>429</code> and <code>529</code> are transient — the same request can succeed later. A <code>400</code> is an invalid request (or a spend limit you set) and a <code>401</code> has bad credentials; both fail identically on every retry, so retrying only wastes time."},
 
 { id:"hdv-v1-06", exam:"CCDV-F", d:"v1", heldOut:true, kind:"scenario",
   q:"Where should the API key live in a web application that calls Claude?",

@@ -15,9 +15,9 @@ QUESTIONS.push(
   a:2,
   opts:["Three retries is too many for a user-facing path, and the wrapper should fail after the first retry to keep latency inside budget.",
         "Backoff delays are too long, so the total elapsed time exceeds the client timeout and the request is reported as a failure rather than a 400.",
-        "A 400 means the request is malformed, so each retry sends the identical bad request and spends nine seconds arriving at the same answer.",
+        "A 400 means the request is invalid, so each retry sends the identical bad request and spends nine seconds reaching the same answer.",
         "The wrapper is not reading the <code>retry-after</code> header, so it backs off on its own schedule rather than the one the API asks for."],
-  why:"Retry logic has to split failures into those that may succeed later and those that cannot. A 400 is <code>invalid_request_error</code> — something about the request itself is wrong, so the second and third attempts fail identically and the nine seconds buys nothing but delay before the real fix. Transient codes such as 429 and 529 are what backoff exists for. The fourth option names a genuine omission that matters on a 429 and is irrelevant to a 400, which is what makes it the strongest distractor here."},
+  why:"Retry logic has to split failures into those that may succeed later and those that cannot. A 400 is <code>invalid_request_error</code> — something about the request itself is wrong, or a spend limit you set has been reached, so the second and third attempts fail identically and the nine seconds buys nothing but delay before the real fix. Transient codes such as 429 and 529 are what backoff exists for. The fourth option names a genuine omission that matters on a 429 and is irrelevant to a 400, which is what makes it the strongest distractor here."},
 
 { id:"hd-v1-02", exam:"CCDV-F", d:"v1", difficulty:"hard", kind:"scenario",
   q:"An endpoint returns 529 roughly once an hour under steady traffic. A developer argues this means the account has outgrown its rate limit and the fix is a tier increase. Assess.",

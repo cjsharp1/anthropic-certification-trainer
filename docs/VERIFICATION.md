@@ -208,9 +208,14 @@ keeping tool results scoped. **Verified as inference.**
 non-blocking error. Claude Code hooks documentation. This specific fact is
 what the question turns on. **Verified.**
 
-**hd-d3-02** — a CI run that hangs despite non-interactive mode is waiting on
-an unauthorized tool's permission prompt. Claude Code headless/CI
-documentation on pre-authorizing tools. **Verified.**
+**hd-d3-02** — a CI run that comes back incomplete on larger diffs despite
+non-interactive mode hit a tool that was not pre-authorized. Corrected
+2026-11-18: the question originally said the run *hangs* at a permission
+prompt, but the headless documentation says "In a Manual mode `claude -p` run,
+a call that needs approval is denied unless something approves it", so the run
+continues without that call. The key and the lesson (pre-authorize what a CI
+run needs) are unchanged; the symptom is now an incomplete review.
+**Verified.**
 
 **hd-d3-03** — a rule engineers must not be able to disable belongs in the
 managed layer, because every repository-level layer is editable with commit
@@ -418,7 +423,7 @@ developer productivity. **Verified as inference.**
 ## Exam Simulation bank — fact-based verification
 
 The hard-tier log above checks one question at a time. The simulation bank is
-270 questions, and roughly half of them turn on a judgement about architecture
+283 questions, and roughly half of them turn on a judgement about architecture
 rather than on a documented fact — those are reviewed as reasoning, not
 verified against a source, and are not listed here.
 
@@ -439,7 +444,10 @@ what changed as a result.
 file *paths*, Read reads a file, Bash runs a command. Confirmed verbatim from
 the tools reference, which also states the names are exact: "The tool names are
 the exact strings you use in permission rules, subagent tool lists, and hook
-matchers."
+matchers." Annotated 2026-11-18: the same page now says that on macOS, Linux
+and WSL Glob and Grep are left out of the default tool set and Claude searches
+through Bash, so the eight questions that teach Glob and Grep as defaults carry
+a current-state note.
 
 **Non-interactive CLI** (8) — `-p` / `--print` confirmed: "Add the `-p` (or
 `--print`) flag to any `claude` command to run it non-interactively." The
@@ -536,14 +544,21 @@ settings and agent definitions still work as aliases."
 - **BAL-033**, **REF-089**, **REF-116** — noted. The mechanism each tests is
   unchanged and the alias still works, so no answer moved.
 
-**`AgentDefinition` and `allowedTools` are not product names.** A subagent is a
-Markdown file with YAML frontmatter; its tools are restricted with the `tools`
-field (allowlist) or `disallowedTools` (denylist), and its system prompt is the
-file body. Settings use `permissions.allow` / `permissions.deny`. Neither
-`AgentDefinition` nor `allowedTools` appears in the documentation.
+**`AgentDefinition` is the Agent SDK's subagent type; `allowedTools`
+auto-approves.** Corrected 2026-11-18: an earlier version of this entry said
+neither name exists in the product. Both do. The Agent SDK subagents page has
+an "AgentDefinition configuration" table with `description`, `prompt`, `tools`
+("If omitted, inherits every tool available to subagents") and
+`disallowedTools`. `allowedTools` is a session option whose examples are
+commented "Auto-approve these tools"; it does not restrict a subagent, which is
+what the `tools` field does. In Claude Code the same fields are YAML
+frontmatter in a Markdown file under `.claude/agents/`.
 
 - **REF-090**, **REF-117** — noted. Both test scoping a subagent to its role,
-  which is correct and well documented; only the field names are invented.
+  which is correct and well documented; the note now describes the SDK type
+  accurately.
+- **REF-089**, **REF-116**, **BAL-033** — the Task-to-Agent note now also says
+  that `allowedTools` is the auto-approve list.
 
 ### Not verified
 
@@ -579,6 +594,40 @@ The 230 questions citing only the exam guide still rest on a single source that
 establishes scope rather than correctness, and 124 of those citations point at
 third-party mirrors of the guide rather than at Anthropic's own partner site.
 Replacing those is a separate pass.
+
+Update 2026-11-18: an accuracy review added a documentation source to each
+fact-bearing question it could match to a page. 121 of 283 questions now cite
+only the exam guide, 52 of them through a third-party mirror. What remains is
+mostly judgement questions that no documentation page settles.
+
+### Added 2026-11-18 to hold the objective floor
+
+That day's review cut eight over-tagged questions back to the objectives each
+actually tests (REF-018, REF-089, REF-090, REF-116 and REF-117 had all carried
+O01, O03, O04, O05 and O06; REF-047, REF-053 and REF-057 were mapped to
+objectives they don't test). That would have left O01, O03, O06, O14 and O31
+below 8, so thirteen `objective_balance` questions were written. Each was
+checked against the page it cites, on 2026-11-18:
+
+- **BAL-063 to BAL-067 (O03)** — "The only content you pass from parent to
+  subagent is the Agent tool's prompt string", and a subagent does not receive
+  "the parent's system prompt" (Agent SDK subagents). What a complete handoff
+  carries is judgement from those premises. **Verified as inference.**
+- **BAL-068, BAL-069, BAL-071 (O06)** — the Agent SDK subagents troubleshooting
+  list: a new `agents` directory is not watched until restart; programmatic
+  `agents` override a filesystem agent with the same name; invalid frontmatter
+  or a duplicate `name` stops a definition appearing. **Verified.**
+- **BAL-070 (O06)** — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`: default 3, and
+  "`1` stops your subagents from spawning any of their own", leaving the bottom
+  layer to do the work itself. **Verified.**
+- **BAL-072 (O14)** — skills page: with `context: fork` "The subagent doesn't
+  see your conversation history", and the result returns to the main
+  conversation. **Verified.**
+- **BAL-073, BAL-074 (O31)** — explicit inclusion and exclusion criteria, in
+  the same framing as BAL-062 and W-026. **Verified as inference.**
+- **BAL-075 (O01)** — parallel tool use page: with `tool_choice` `auto`,
+  `disable_parallel_tool_use: true` "means Claude calls at most one tool in
+  each response", and parallel use is on by default. **Verified.**
 
 ## Re-verification
 
