@@ -1,0 +1,56 @@
+# Publish the single-file build as a GitHub release asset.
+#
+# Triggered by pushing a tag such as v1.1.0 (`npm version minor` then
+# `git push --follow-tags`). The asset keeps the same filename every release so
+# that .../releases/latest/download/anthropic-certification-trainer.html is a
+# permanent link to the newest build.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the generated notes can find the previous tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The build stamps package.json's version into the file. A tag that
+      # disagrees with it would ship a file naming the wrong release, so stop
+      # here rather than publish something misleading.
+      - name: Check tag matches package.json
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+
+      # check builds dist/ (the build suite reads it) and runs every audit, so
+      # a release cannot go out with a failing suite or a broken page.
+      - name: Validate, audit and test
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/anthropic-certification-trainer.html \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
