@@ -23,6 +23,28 @@ Run `npm run validate` after editing anything in `src/data/`. It catches a bad
 domain id, a missing `why`, an out-of-range answer index — all of which
 otherwise fail silently by excluding a question from drills.
 
+## Releases
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which runs the full
+check and publishes `dist/anthropic-certification-trainer.html` as a release
+asset under a fixed name, so `releases/latest/download/...` always serves the
+newest build. Don't create releases by hand with `gh release create` or the web
+UI; the workflow fails if the release already exists.
+
+Release only when asked, not as part of finishing a change. Each release is a
+new file colleagues are told to download, so small fixes wait and ship with the
+next one worth sending.
+
+Bump with `npm version patch|minor|major`, which commits package.json and
+creates a matching tag, then `git push --follow-tags`. The workflow rejects a
+tag that doesn't match package.json, and build.js stamps that version into the
+file's `<meta name="generator">`. Pick the bump by what changed for the person
+studying:
+
+- patch: corrected answers, typos, layout fixes
+- minor: new questions, notes, labs or features
+- major: a change that resets or migrates saved progress
+
 ## Layout
 
 - `index.html` — overview page, published by GitHub Pages; standalone
