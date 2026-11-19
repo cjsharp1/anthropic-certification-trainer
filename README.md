@@ -389,6 +389,10 @@ npm version minor          # or patch / major — commits package.json and tags 
 git push --follow-tags
 ```
 
+Choose the bump by what changed for someone studying: **patch** for corrected
+answers, typos and layout fixes; **minor** for new questions, notes, labs or
+features; **major** for a change that resets or migrates saved progress.
+
 `.github/workflows/release.yml` runs on any `v*` tag. It runs `npm run check`,
 refuses the tag if it does not match the version in `package.json`, builds, and
 publishes a release with the file attached and notes generated from the commits
