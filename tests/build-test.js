@@ -39,6 +39,15 @@ H('1. The artifact is self-contained');
   ok(/--f-body:[^;]*(system-ui|sans-serif)/.test(built), 'body font falls back locally');
 }
 
+H('1b. The sidebar names the release version');
+{
+  // A colleague reports a problem by quoting the sidebar, so it must carry
+  // the package.json version and not the placeholder the sources show.
+  const v = JSON.parse(fs.readFileSync(P.resolve('package.json'), 'utf8')).version;
+  ok(built.includes('id="appVer"') && built.includes('>v' + v + '<'), 'sidebar shows v' + v);
+  ok(!built.includes('development copy'), 'the source placeholder is replaced');
+}
+
 H('2. Every source script made it in');
 {
   const index = fs.readFileSync(P.resolve('index.html'), 'utf8');

@@ -103,6 +103,10 @@ body.resizing .railgrip::after{opacity:.8}
   background:none;border:0;text-align:left;padding:8px 10px;border-radius:7px;
   color:var(--fg-dim);font-weight:500;font-size:0.95rem}
 .nav-sub:hover{background:var(--surface-2);color:var(--fg)}
+/* Which copy this is. build.js writes the release version over the
+   placeholder, so the loose source files say so rather than claim a number. */
+.appver{font-family:var(--f-mono);font-size:0.62rem;color:var(--fg-dim);
+  padding:0 10px;opacity:.8}
 .nav-sub.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .navscore{font-family:var(--f-mono);font-size:0.72rem;opacity:.8;
   font-variant-numeric:tabular-nums}
@@ -1336,6 +1340,7 @@ body:has(.ttsbar:not([hidden])) .main{padding-bottom:160px}
       <button class="nav-sub" data-view="settings">
         <span>Settings</span>
       </button>
+      <div class="appver" id="appVer">development copy</div>
     </div>
     <div class="railgrip" id="railGrip" role="separator" aria-orientation="vertical"
          aria-label="Resize sidebar" tabindex="0"></div>

@@ -57,6 +57,10 @@ const stamp = new Date().toISOString().slice(0, 10);
 const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 html = html.replace('</head>',
   '<meta name="generator" content="build.js v' + version + ' ' + stamp + '">\n</head>');
+// The same stamp, visible in the sidebar, since nobody reads <meta> tags.
+const VER_SLOT = 'id="appVer">development copy<';
+if (!html.includes(VER_SLOT)) die('version placeholder #appVer is missing from index.html');
+html = html.replace(VER_SLOT, 'id="appVer" title="Built ' + stamp + '">v' + version + '<');
 
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.writeFileSync(OUT, html);
