@@ -17,9 +17,10 @@ Reporting that a *topic* came up is fine; reproducing a question is not.
 ## Reporting a wrong answer
 
 [Open a "Wrong or unclear answer" issue](https://github.com/cjsharp1/anthropic-certification-trainer/issues/new?template=wrong-answer.yml).
-The app doesn't show question ids, so paste the opening words of the question
-and say where you found it (drill, practice exam, Exam Simulation, flashcard or
-note). Above all, include a source: a link to the Anthropic documentation or
+The quickest way is the **Report a problem with this question** link under
+any explanation: it opens the form with the question's id, the certification
+and your trainer version already filled in. For a flashcard or note, which have
+no id, paste its heading and say where you found it. Above all, include a source: a link to the Anthropic documentation or
 exam guide that shows the right answer. A report with a source can be fixed
 straight away; one without has to be researched first.
 

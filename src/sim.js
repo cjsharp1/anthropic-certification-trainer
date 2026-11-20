@@ -436,6 +436,9 @@ function simFeedback(q, picked, order) {
 
   const objs = (q.objectives || []).map(id => id).join(', ');
   if (objs) box.appendChild(el('div', 'muted small simobj', 'Test objective ' + objs));
+  if (typeof questionRef === 'function') {
+    box.appendChild(questionRef(q.id, q.stem, q.exam || 'CCAR-F', 'Exam Simulation (CCAR-F)'));
+  }
   return box;
 }
 
@@ -767,20 +770,29 @@ function renderSim() {
   const note = el('div', 'simavail');
   note.appendChild(el('div', 'simavailhead', avail + ' questions in the bank'));
   const detail = ready === scns.length
-    ? el('div', 'muted small', 'Every scenario has at least ' + SIM_BLOCK + ' questions, so a full sitting is drawn exactly as the real exam does.')
+    ? el('div', 'muted small', 'A sitting draws ' + SIM_BLOCK + ' questions from each of ' + SIM_BLOCKS + ' scenarios. Every scenario has at least that many, so a full sitting is drawn exactly as the real exam does; the more a scenario holds, the less often a question comes round again.')
     : el('div', 'muted small',
         ready + ' of ' + scns.length + ' scenarios have the full ' + SIM_BLOCK + '. '
         + 'A sitting takes what each drawn scenario has and tops the paper up from the '
         + 'others to reach ' + SIM_TARGET + '; the extras are shown separately and the '
         + 'result says how many there were.');
   note.appendChild(detail);
+  /* Counts in words, not bars. A bar against the deepest scenario, with a
+     tick at the block size, made the reader decode a chart to learn two
+     facts: how many questions a scenario has, and whether that is enough.
+     The sentence above says why the count matters; a short scenario says so
+     beside its count. Three columns, not auto-fit: six scenarios divide
+     evenly into 3, 2 and 1, where auto-fit left one orphaned on its own row. */
   const grid = el('div', 'simscngrid');
   scns.forEach(s => {
     const c = counts[s.id] || 0;
-    const cell = el('div', 'simscncell' + (c >= SIM_BLOCK ? ' full' : c ? '' : ' empty'));
-    cell.appendChild(el('span', 'simscnn', String(c)));
+    const short = c < SIM_BLOCK;
+    const cell = el('div', 'simscncell' + (short ? ' short' : ''));
     cell.appendChild(el('span', 'simscnt', s.t));
-    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · needs ' + SIM_BLOCK + ' for a full block';
+    const n = el('span', 'simscnn', String(c));
+    if (short) n.appendChild(el('span', 'simscnshort', ' · short of ' + SIM_BLOCK));
+    cell.appendChild(n);
+    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · a sitting draws ' + SIM_BLOCK;
     grid.appendChild(cell);
   });
   note.appendChild(grid);

@@ -3636,6 +3636,11 @@ function grade() {
   ex.appendChild(el('div', 'verdict ' + (ok ? 'ok' : 'no'), ok ? 'Correct' : 'Not quite'));
   const p = el('div', 'why'); p.innerHTML = q.why; ex.appendChild(p);
   if (q.volatile) ex.appendChild(el('div', 'muted small vol', 'Version-sensitive: re-verify against current docs before exam day.'));
+  // A shared question names the exam being studied, not the first one listed.
+  const qExam = Array.isArray(q.exam) ? (q.exam.includes(S.exam) ? S.exam : q.exam[0]) : q.exam;
+  if (typeof questionRef === 'function') {
+    ex.appendChild(questionRef(q.id, q.q, qExam, Q.mode === 'mock' ? 'Practice exam' : 'Drill'));
+  }
   ex.hidden = false;
   $('#confRow').hidden = false;
 }

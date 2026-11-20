@@ -302,6 +302,8 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
   padding:15px 17px;width:100%}
 .why{line-height:1.6;font-size:0.95rem}
 .vol{margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.qref{margin-top:10px}
+.qid{font-family:var(--f-mono);user-select:all}
 .confrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;width:100%}
 .confrow .q{font-size:0.86rem;color:var(--fg-dim);margin-right:3px}
 .cbtn{padding:7px 14px;border-radius:7px;border:1px solid var(--line);
@@ -384,14 +386,16 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
 .simavail{margin:18px 0;padding:14px 16px;background:var(--surface-2);
   border:1px solid var(--line);border-radius:var(--r)}
 .simavailhead{font-weight:600;margin-bottom:3px}
-.simscngrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
-  gap:8px;margin-top:12px}
-.simscncell{display:flex;align-items:baseline;gap:8px;padding:8px 10px;
-  background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:0.86rem}
-.simscncell.full{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
-.simscncell.empty{opacity:.55}
-.simscnn{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
-.simscnt{color:var(--fg-dim);line-height:1.25}
+.simscngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0 28px;margin-top:10px}
+@media (max-width:900px){.simscngrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.simscngrid{grid-template-columns:1fr}}
+.simscncell{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:0.86rem;min-width:0}
+.simscnt{color:var(--fg);line-height:1.3}
+.simscnn{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums;
+  color:var(--fg);white-space:nowrap}
+.simscnshort{color:var(--warn)}
 /* The scenario block header: the candidate reads this once, then answers 15
    questions inside it, so it is set apart from the stem. */
 .simscn{border-left:3px solid var(--clay);padding:12px 0 12px 15px;margin-bottom:20px}
@@ -1701,6 +1705,7 @@ body:has(.ttsbar:not([hidden])) .main{padding-bottom:160px}
 <script src="../src/data/data-notes.js"></script>
 <!-- Before app.js and sim.js: both wire options through it. -->
 <script src="../src/strikeout.js"></script>
+<script src="../src/report.js"></script>
 <script src="../src/app.js"></script>
 <!-- After app.js: uses its helpers (el, go, save, fmtClock) and the S state. -->
 <script src="../src/sim.js"></script>
