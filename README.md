@@ -103,7 +103,7 @@ and struck through, never disabled, so you can still pick it if you change your
 mind. Marks clear once the answer is revealed and are never saved between
 sessions. On a keyboard, focus an option and press X.
 
-**Exam Simulation (CCAR-F).** A separate bank of 283 scenario questions, kept
+**Exam Simulation (CCAR-F).** A separate bank of 303 scenario questions, kept
 apart from the fact-recall drills because it is a different kind of exam. A
 sitting draws 4 of the 6 documented scenarios and asks 15 questions on each —
 60 questions in 120 minutes, single-select, long plain-prose stems where two
@@ -117,11 +117,14 @@ a callout where the live product has moved on since the exam guide.
 
 Results come back the way the real score report does — percent correct per test
 objective — plus breakdowns by domain and scenario, and a history table showing
-each objective across attempts. There is also a drill that takes any set of
+each objective across attempts. Every past attempt on the start screen can be
+reopened to its results, and the missed-question review lists each question's
+four options in the order you saw them, with your answer and the best answer
+marked, before the explanations. There is also a drill that takes any set of
 objectives you tick. Scaled-score figures are labelled as approximations: the
 real exam weights by item difficulty, which can't be reproduced from outside.
 
-Every scenario holds at least 22 questions, so a sitting always draws a full
+Every scenario holds at least 29 questions, so a sitting always draws a full
 4 x 15 paper with no top-up and no two sittings repeat the same selection. The
 honest-shortfall machinery is still there: if a future selection leaves a
 scenario short, the extras appear in their own block and the count is stated on
@@ -304,13 +307,14 @@ node tests/sim-test.js
 Note that `tools/validate.js` covers the recall bank (`QUESTIONS`) only — the
 simulation bank is checked by that suite instead.
 
-The bank holds 283 questions in five sets: the two from the original handoff,
+The bank holds 303 questions in six sets: the two from the original handoff,
 `reference_mock_v6` (128 questions) converted from the mock simulator in
 `reference/`, the 18-question hard tier, and `objective_balance` (75
 questions) written to even out per-objective coverage — before it, the 37
 score-report objectives ranged from 2 to 24 questions each, which made
 "drill by test objective" far thinner for some objectives than others. Every
-objective now has at least 8. Each question should carry only the objectives
+objective now has at least 8. `ci_depth` (20 questions) came later: the CI scenario held only 19
+questions against a 15-question block, so most sittings repeated the same ones. Each question should carry only the objectives
 it actually tests: copying a task statement's whole objective list onto a
 question inflates the counts without adding coverage, and an accuracy review
 had to undo that on eight questions. Section 12 of the sim suite checks the floor

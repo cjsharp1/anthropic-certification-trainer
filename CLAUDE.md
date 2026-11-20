@@ -35,11 +35,23 @@ Release only when asked, not as part of finishing a change. Each release is a
 new file colleagues are told to download, so small fixes wait and ship with the
 next one worth sending.
 
-Bump with `npm version patch|minor|major`, which commits package.json and
-creates a matching tag, then `git push --follow-tags`. The workflow rejects a
-tag that doesn't match package.json, and build.js stamps that version into the
-file's `<meta name="generator">`. Pick the bump by what changed for the person
-studying:
+`main` only accepts changes through a pull request, but tags are not
+protected, and the workflow runs on the tag alone. So push the tag last, from
+`main`, or a release ships code that `main` does not have. v1.3.0 went out
+that way: `git push --follow-tags` had the tag accepted and the branch
+refused.
+
+1. On a branch, bump with `npm version patch|minor|major`. It commits
+   package.json and creates a matching tag locally.
+2. Push the branch alone (`git push -u origin <branch>`, no `--follow-tags`)
+   and open a pull request into `main`.
+3. Merge it with a merge commit, not a squash. A squash leaves the tagged
+   commit out of `main`'s history.
+4. Pull `main`, then `git push origin vX.Y.Z` to start the release.
+
+The workflow rejects a tag that doesn't match package.json, and build.js
+stamps that version into the file's `<meta name="generator">`. Pick the bump
+by what changed for the person studying:
 
 - patch: corrected answers, typos, layout fixes
 - minor: new questions, notes, labs or features

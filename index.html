@@ -240,7 +240,7 @@ footer{
 <div class="wrap">
 
 <header class="mast">
-  <p class="kicker">Project overview · 2026-11-11</p>
+  <p class="kicker">Project overview · 2026-11-20</p>
   <h1>Anthropic Certification Trainer</h1>
   <p class="standfirst">A single-file study app for the four Anthropic certification exams. 764 questions, 27 study notes and 19 build labs in one HTML file that runs offline with no install, no server and no dependencies.</p>
   <p class="cta"><a href="app/">Open the app →</a> <a href="https://github.com/cjsharp1/anthropic-certification-trainer/releases/latest/download/anthropic-certification-trainer.html" download>Download the single file</a></p>
@@ -263,7 +263,7 @@ footer{
     <p>The shipped build is 1.9 MB in a single file. It makes no network requests of any kind — no <code>fetch</code>, no <code>XMLHttpRequest</code>, no dynamic <code>import()</code>. The only external reference in the entire app is a Google Fonts stylesheet, and every family declares a local fallback, so the app is fully functional with no connection.</p>
   </div>
 
-  <p>The Architect Foundations track carries a second, separate bank. After a real sitting of that exam, 283 scenario questions were written to match what the exam actually asks: long plain-prose stems with numbers scattered through them, four options where two would work, and one best answer. Those questions never mix into the recall drills.</p>
+  <p>The Architect Foundations track carries a second, separate bank. After a real sitting of that exam, 303 scenario questions were written to match what the exam actually asks: long plain-prose stems with numbers scattered through them, four options where two would work, and one best answer. Those questions never mix into the recall drills.</p>
 </section>
 
 <section>
@@ -333,7 +333,7 @@ footer{
       <thead><tr><th>Unit</th><th class="n">Count</th><th>What it is</th></tr></thead>
       <tbody>
         <tr><td>Recall questions</td><td class="n">764</td><td>432 drill, 267 held-out for practice exams, 65 hard tier</td></tr>
-        <tr><td>Simulation questions</td><td class="n">283</td><td>Separate CCAR-F bank, scenario-shaped, never mixed into drills</td></tr>
+        <tr><td>Simulation questions</td><td class="n">303</td><td>Separate CCAR-F bank, scenario-shaped, never mixed into drills</td></tr>
         <tr><td>Study notes</td><td class="n">27</td><td>One per domain, concept-first rather than bullet lists</td></tr>
         <tr><td>Takeaways</td><td class="n">234</td><td>Pulled-out conclusions, collected at the top of each note</td></tr>
         <tr><td>Flashcards</td><td class="n">194</td><td>Atomic facts, Leitner spacing across five boxes</td></tr>
@@ -354,6 +354,7 @@ footer{
         <tr><td class="mono">objective_balance</td><td class="n">75</td><td>Written to level per-objective coverage</td></tr>
         <tr><td class="mono">weak_objectives_1</td><td class="n">32</td><td>Targeted at objectives scored low on a real report</td></tr>
         <tr><td class="mono">scenario6_core</td><td class="n">30</td><td>Structured Data Extraction scenario</td></tr>
+        <tr><td class="mono">ci_depth</td><td class="n">20</td><td>Continuous Integration scenario, written against the docs</td></tr>
         <tr><td class="mono">hard_tier</td><td class="n">18</td><td>Hard-tier questions matching the simulation's shape</td></tr>
       </tbody>
     </table>
@@ -401,6 +402,10 @@ footer{
       <p>118 of the 270 simulation questions turn on a documented fact rather than a judgement. They were grouped into 16 topic clusters and checked against the product documentation. Three questions had a wrong correct answer; five more were annotated where the product had been renamed under them.</p></li>
     <li><b>Accuracy review of the whole bank.</b>
       <p>All 270 questions were re-read against the documentation. One question had no correct answer as written and was rewritten; five more had a keyed option that named the wrong mechanism or overstated it. Notes were added where the product has moved past the exam guide, unsupported citations were replaced with documentation pages, and objectives that had been copied wholesale onto eight questions were cut back to what each tests. Thirteen questions were written so every objective still has at least 8.</p></li>
+    <li><b>Continuous Integration scenario deepened.</b>
+      <p>The CI scenario held 19 questions against a 15-question block, so nearly every sitting repeated the same ones. Twenty more were written against the exam guide's CI, batch and review-architecture skills, with every CLI and Batches API fact checked against the current documentation, bringing it to 39.</p></li>
+    <li><b>Missed questions reviewable after the fact.</b>
+      <p>The missed-question review named options only by letter, with nothing on screen to read the letters against. It now lists all four options in the order they were shown, with your answer and the best answer marked. Past attempts can be reopened from the start screen, so the review is no longer lost once you leave the results page.</p></li>
   </ol>
 
   <h3>Gotchas worth keeping</h3>
@@ -441,15 +446,15 @@ footer{
   <p>The full toolchain runs clean. One near-duplicate pair is outstanding: <code>dv-v2-11</code> and <code>dv-v2-18</code> both ask about model selection in a two-step pipeline, at 0.65 similarity. Pre-existing and unresolved.</p>
 
   <h3>Caveats</h3>
-  <p>Verification is partial by design. Of the 270 simulation questions in the bank at the time of the fact-based pass, 118 rest on a documented fact and have been checked against the product documentation; the 13 added later were written against it. The other 152 turn on a judgement about architecture, where the answer is a defensible design call rather than something a source can confirm. Those have not been through a verification pass, and the status table in <code>docs/VERIFICATION.md</code> says so rather than implying the whole bank is verified.</p>
-  <p>Provenance is the weaker half. 121 of 283 simulation questions cite only the exam guide, which establishes what is in scope but rarely settles whether an answer is right. 52 of those citations point at third-party mirrors of the guide rather than at Anthropic's own partner site.</p>
+  <p>Verification is partial by design. Of the 270 simulation questions in the bank at the time of the fact-based pass, 118 rest on a documented fact and have been checked against the product documentation; the 13 added in the accuracy review and the 20 CI questions added on 2026-11-20 were written against it. The other 152 turn on a judgement about architecture, where the answer is a defensible design call rather than something a source can confirm. Those have not been through a verification pass, and the status table in <code>docs/VERIFICATION.md</code> says so rather than implying the whole bank is verified.</p>
+  <p>Provenance is the weaker half. 129 of 303 simulation questions cite only the exam guide, which establishes what is in scope but rarely settles whether an answer is right. 60 of those citations point at third-party mirrors of the guide rather than at Anthropic's own partner site.</p>
   <p>The material has a shelf life. Pearson VUE lists an exam update for <b>2026-12-07</b>, with refreshed guides due <b>2026-11-17</b>. Claude Code moves faster than the exam guide: the fact-check already found the Task tool renamed to Agent, and three documentation URLs consolidated. The CLI, hooks, subagent and MCP clusters are the ones to re-check first.</p>
 </section>
 
 <footer>
   <span>claude-cert-trainer-v1</span>
   <span>Node v24.4.1 · no dependencies</span>
-  <span>Verified against source 2026-11-11</span>
+  <span>Verified against source 2026-11-11 · CI additions 2026-11-20</span>
 </footer>
 
 </div>
