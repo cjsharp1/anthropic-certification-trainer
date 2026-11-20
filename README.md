@@ -230,7 +230,7 @@ flags these in the explanation.
 
 Append to any `src/data/data-questions-*.js` file, or create
 `src/data/data-questions-10.js` and add a `<script>` tag for it in
-`index.html`. Each file calls `QUESTIONS.push(...)`
+`app/index.html`. Each file calls `QUESTIONS.push(...)`
 except the first, which declares the array.
 
 ```js
@@ -415,6 +415,8 @@ still a double-click away; everything it loads lives under `src/`. The root
 ```
 index.html             project overview page (GitHub Pages landing)
 README.md
+CONTRIBUTING.md        how to report a wrong answer, and how to change things
+CODE_OF_CONDUCT.md     Contributor Covenant 2.1
 
 app/
   index.html           app shell, styles, view markup
@@ -448,6 +450,7 @@ tests/                 behaviour suites (21) — never shipped
 
 docs/                  VERIFICATION.md — hard-tier source audit
 .github/workflows/     release.yml — publishes the built file on a v* tag
+.github/ISSUE_TEMPLATE/ forms for wrong answers, bugs and suggestions
 dist/                  the shareable single file (generated)
 ```
 
@@ -489,6 +492,15 @@ node tools/validate.js       # data integrity
 node tools/build.js          # write dist/
 node tools/run-tests.js      # every suite, any platform
 ```
+
+## Contributing
+
+Found a wrong or out-of-date answer? That's the most useful report there is:
+[open a wrong-answer issue](https://github.com/cjsharp1/anthropic-certification-trainer/issues/new?template=wrong-answer.yml)
+with a link to the documentation that shows the right one. Please never paste
+questions from a real exam sitting. [CONTRIBUTING.md](CONTRIBUTING.md) covers
+bug reports, suggestions and pull requests, and everyone taking part agrees to
+the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
