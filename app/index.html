@@ -387,22 +387,15 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
   border:1px solid var(--line);border-radius:var(--r)}
 .simavailhead{font-weight:600;margin-bottom:3px}
 .simscngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:16px 28px;margin-top:16px}
+  gap:0 28px;margin-top:10px}
 @media (max-width:900px){.simscngrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.simscngrid{grid-template-columns:1fr}}
-.simscncell{font-size:0.86rem;min-width:0}
-.simscntop{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:7px}
+.simscncell{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:0.86rem;min-width:0}
 .simscnt{color:var(--fg);line-height:1.3}
-.simscnn{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums;color:var(--fg)}
-/* The track is a lighter step of the fill's own hue, so the bar reads as one
-   measure; the tick sits above and below it so it stays visible over both. */
-.simscnbar{position:relative;height:6px;border-radius:999px;
-  background:color-mix(in srgb,var(--accent) 18%,transparent)}
-.simscnfill{height:100%;border-radius:999px;background:var(--accent)}
-.simscncell.short .simscnfill{background:var(--warn)}
-.simscntick{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;
-  border-radius:1px;background:var(--fg-dim)}
-.simscnshort{margin-top:5px;color:var(--warn);font-weight:600}
+.simscnn{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums;
+  color:var(--fg);white-space:nowrap}
+.simscnshort{color:var(--warn)}
 /* The scenario block header: the candidate reads this once, then answers 15
    questions inside it, so it is set apart from the stem. */
 .simscn{border-left:3px solid var(--clay);padding:12px 0 12px 15px;margin-bottom:20px}
