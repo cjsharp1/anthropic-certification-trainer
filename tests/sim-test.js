@@ -85,9 +85,12 @@ H('1. The imported bank');
    been copied wholesale onto REF-018, REF-089, REF-090, REF-116, REF-117,
    REF-047, REF-053 and REF-057. Thirteen objective_balance questions
    (BAL-063 to BAL-075) were added so O01, O03, O06, O14 and O31 kept the floor
-   section 12 enforces. A changed count means questions arrived or vanished:
-   update this deliberately, not to make the suite pass. */
-ok(QS.length === 283, 'holds 283 questions, found ' + QS.length);
+   section 12 enforces. 303 since 2026-11-20, when the ci_depth set (CI-001 to
+   CI-020) was added because the CI scenario held only 19 questions against a
+   15-question block, so nearly every sitting repeated the same ones. A changed
+   count means questions arrived or vanished: update this deliberately, not to
+   make the suite pass. */
+ok(QS.length === 303, 'holds 303 questions, found ' + QS.length);
 ok(OBJ.length === 37, 'holds 37 test objectives, found ' + OBJ.length);
 ok(new Set(QS.map(q => q.id)).size === QS.length, 'every question id is unique');
 ok(QS.every(q => q.exam === 'CCAR-F'), 'every question is CCAR-F');
@@ -113,9 +116,10 @@ ok(QS.every(q => q.domains.every(d => domIds.includes(d))), 'every domain maps t
 // The handoff names this scenario differently from the exam guide; if the
 // alias is ever dropped its questions silently vanish from their block. 19
 // since 2026-11-18: BAL-073 (a CI review prompt) joined, and REF-070, REF-071,
-// REF-075 and REF-127 left, because nothing in their stems involves CI.
+// REF-075 and REF-127 left, because nothing in their stems involves CI. 39
+// since 2026-11-20: the twenty ci_depth questions joined.
 const ci = QS.filter(q => q.scn === 'ci');
-ok(ci.length === 19, '"Claude Code for CI/CD" maps onto the guide\'s ci scenario (' + ci.length + ' questions)');
+ok(ci.length === 39, '"Claude Code for CI/CD" maps onto the guide\'s ci scenario (' + ci.length + ' questions)');
 { /* Two spellings now resolve to the same id: the first sitting's data
      says "Claude Code for CI/CD" and the reference set uses the guide's
      own "Claude Code for Continuous Integration". Both must land on ci,

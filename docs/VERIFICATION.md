@@ -629,6 +629,44 @@ checked against the page it cites, on 2026-11-18:
   `disable_parallel_tool_use: true` "means Claude calls at most one tool in
   each response", and parallel use is on by default. **Verified.**
 
+### ci_depth set (CI-001 to CI-020), verified 2026-11-20
+
+Twenty questions added to the CI scenario, which held 19 against a
+15-question block. Fact-bearing ones were checked against
+`code.claude.com/docs` (headless, CLI reference, GitHub Actions) and the batch
+processing page on `platform.claude.com/docs` that day.
+
+- **CI-010** — `--max-budget-usd`: "Stop the run once estimated spend on API
+  calls reaches this amount (print mode only)", against a client-side estimate
+  that "can pass the cap". `--fallback-model` triggers "when the primary model
+  is overloaded or not available". **Verified.**
+- **CI-011** — under `-p` with nothing approving it, a call that needs
+  approval is denied; `acceptEdits` auto-approves edits and common filesystem
+  commands (`mkdir`, `touch`, `mv`, `cp`), and other shell commands still
+  need an allow rule. **Verified.**
+- **CI-012** — "The space before `*` is important: without it,
+  `Bash(git diff*)` would also match `git diff-index`." **Verified.**
+- **CI-013** — "If a run ends without valid structured output … the response
+  has no `structured_output` field. Before your script uses
+  `structured_output`, check that the field is present." **Verified.**
+- **CI-014** — `--bare` skips auto-discovery of hooks, skills, plugins, MCP
+  servers, auto memory and CLAUDE.md, is "the recommended mode for scripted and
+  SDK calls", and takes context through flags including
+  `--append-system-prompt-file`. **Verified.**
+- **CI-015** — "Without `--bare`, a `-p` session runs the hooks in a
+  project's `.claude/settings.json` and connects the servers in its
+  `.mcp.json`, even in a folder you've never trusted", with no trust dialog or
+  per-server prompt. **Verified.**
+- **CI-006 to CI-009** — Message Batches: 50% cost, most batches within an
+  hour, expiry if not complete within 24 hours, `custom_id` per request. The
+  no-multi-turn-tool-calling point (CI-007) and the SLA arithmetic (CI-009)
+  follow the exam guide's Task 4.5 wording. **Verified.**
+- **CI-001 to CI-005, CI-016 to CI-020** — judgement questions built on the
+  guide's Tasks 3.6, 4.1, 4.2, 4.6 and 5.5 skills (independent review,
+  prior findings on re-runs, existing tests in context, fixtures in CLAUDE.md,
+  disabling noisy categories, severity criteria, few-shot format,
+  integration passes, calibrated confidence). **Reviewed as reasoning.**
+
 ## Re-verification
 
 Claims grounded in documentation should be re-checked when the docs change.
