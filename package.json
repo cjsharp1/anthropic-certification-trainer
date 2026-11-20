@@ -1,6 +1,6 @@
 {
   "name": "anthropic-certification-trainer",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "A self-contained browser study app for the four Anthropic Claude certifications. No install, no server, no runtime dependencies.",
   "license": "MIT",
