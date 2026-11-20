@@ -34,7 +34,7 @@ function resolve(file) {
     return path.join(ROOT, file);
   }
   if (/^data-.*\.js$/.test(base)) return path.join(DATA, base);
-  if (['app.js', 'sim.js', 'strikeout.js'].includes(base)) return path.join(SRC, base);
+  if (['app.js', 'sim.js', 'strikeout.js', 'report.js'].includes(base)) return path.join(SRC, base);
   // 'index.html' means the app. It lives in app/ so the repo root can hold
   // the overview page GitHub Pages serves; callers still ask by bare name.
   if (base === 'index.html') return path.join(APP, base);

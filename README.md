@@ -425,6 +425,7 @@ src/                   the app — what app/index.html loads and build.js inline
   app.js               state, mastery scoring, selection, rendering
   sim.js               Exam Simulation: sittings, scoring, results
   strikeout.js         right-click to rule an option out
+  report.js            question id and prefilled report link under explanations
   data/
     data-exams.js      exam blueprints — domains and weights
     data-questions*.js question bank (9 drill + 4 held-out + 4 hard)
@@ -495,9 +496,12 @@ node tools/run-tests.js      # every suite, any platform
 
 ## Contributing
 
-Found a wrong or out-of-date answer? That's the most useful report there is:
-[open a wrong-answer issue](https://github.com/cjsharp1/anthropic-certification-trainer/issues/new?template=wrong-answer.yml)
-with a link to the documentation that shows the right one. Please never paste
+Found a wrong or out-of-date answer? That's the most useful report there is.
+Every explanation in the app ends with the question's id and a **Report a
+problem with this question** link, which opens the
+[wrong-answer form](https://github.com/cjsharp1/anthropic-certification-trainer/issues/new?template=wrong-answer.yml)
+with the id, certification and version filled in. Add a link to the
+documentation that shows the right answer. Please never paste
 questions from a real exam sitting. [CONTRIBUTING.md](CONTRIBUTING.md) covers
 bug reports, suggestions and pull requests, and everyone taking part agrees to
 the [code of conduct](CODE_OF_CONDUCT.md).

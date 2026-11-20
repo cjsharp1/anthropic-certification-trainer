@@ -436,6 +436,9 @@ function simFeedback(q, picked, order) {
 
   const objs = (q.objectives || []).map(id => id).join(', ');
   if (objs) box.appendChild(el('div', 'muted small simobj', 'Test objective ' + objs));
+  if (typeof questionRef === 'function') {
+    box.appendChild(questionRef(q.id, q.stem, q.exam || 'CCAR-F', 'Exam Simulation (CCAR-F)'));
+  }
   return box;
 }
 
@@ -767,20 +770,42 @@ function renderSim() {
   const note = el('div', 'simavail');
   note.appendChild(el('div', 'simavailhead', avail + ' questions in the bank'));
   const detail = ready === scns.length
-    ? el('div', 'muted small', 'Every scenario has at least ' + SIM_BLOCK + ' questions, so a full sitting is drawn exactly as the real exam does.')
+    ? el('div', 'muted small', 'Every scenario has at least ' + SIM_BLOCK + ' questions, so a full sitting is drawn exactly as the real exam does. The mark on each bar is the ' + SIM_BLOCK + ' a sitting draws.')
     : el('div', 'muted small',
         ready + ' of ' + scns.length + ' scenarios have the full ' + SIM_BLOCK + '. '
         + 'A sitting takes what each drawn scenario has and tops the paper up from the '
         + 'others to reach ' + SIM_TARGET + '; the extras are shown separately and the '
         + 'result says how many there were.');
   note.appendChild(detail);
+  /* A meter list: name and count, then a bar against the deepest scenario
+     with a mark at the block size. One hue throughout, because every row is
+     the same measure; only a short scenario changes colour, and it says so in
+     words too, so the state never rests on colour alone. Three columns, not
+     auto-fit: six scenarios divide evenly into 3, 2 and 1 columns, where an
+     auto-fit grid left one orphaned on a row of its own. */
+  const deepest = Math.max(SIM_BLOCK, ...scns.map(s => counts[s.id] || 0));
+  const pct = n => (n / deepest * 100).toFixed(1) + '%';
   const grid = el('div', 'simscngrid');
   scns.forEach(s => {
     const c = counts[s.id] || 0;
-    const cell = el('div', 'simscncell' + (c >= SIM_BLOCK ? ' full' : c ? '' : ' empty'));
-    cell.appendChild(el('span', 'simscnn', String(c)));
-    cell.appendChild(el('span', 'simscnt', s.t));
-    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · needs ' + SIM_BLOCK + ' for a full block';
+    const short = c < SIM_BLOCK;
+    const cell = el('div', 'simscncell' + (short ? ' short' : ''));
+    cell.setAttribute('role', 'group');
+    cell.setAttribute('aria-label', s.t + ': ' + c + ' question' + (c === 1 ? '' : 's')
+      + (short ? ', short of the ' + SIM_BLOCK + ' a sitting needs' : ''));
+    const top = el('div', 'simscntop');
+    top.appendChild(el('span', 'simscnt', s.t));
+    top.appendChild(el('span', 'simscnn', String(c)));
+    cell.appendChild(top);
+    const bar = el('div', 'simscnbar');
+    const fill = el('div', 'simscnfill');
+    fill.style.width = pct(c);
+    const tick = el('div', 'simscntick');
+    tick.style.left = pct(SIM_BLOCK);
+    bar.append(fill, tick);
+    cell.appendChild(bar);
+    if (short) cell.appendChild(el('div', 'simscnshort', 'Short of ' + SIM_BLOCK));
+    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · a sitting draws ' + SIM_BLOCK;
     grid.appendChild(cell);
   });
   note.appendChild(grid);

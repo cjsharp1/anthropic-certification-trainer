@@ -39,7 +39,7 @@ body:
     id: question
     attributes:
       label: The question
-      description: The app doesn't show question ids, so paste the opening words of the question (or the card or note heading) so it can be found.
+      description: The question id shown under its explanation (for example ar-d2-18), or for a flashcard or note, its heading. The "Report a problem" link in the app fills this in for you.
     validations:
       required: true
   - type: textarea

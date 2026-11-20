@@ -97,9 +97,10 @@ vm.runInContext([
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
   shim,
   fs.readFileSync(PATHS.resolve('strikeout.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('report.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={initSim,renderSim,simStart,simRender,simPick,simGo,simReview,isStruck,'
-  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,getSIM:function(){return SIM;},clearSIM:function(){SIM=null;}};'
+  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,getSIM:function(){return SIM;},REPORT_EXAMS:REPORT_EXAMS,clearSIM:function(){SIM=null;}};'
 ].join('\n;\n'), ctx, { filename: 'sim-ui.js' });
 const O = ctx.__o;
 const view = () => ctx.__view;
@@ -292,6 +293,29 @@ ok(wrongIt.order.every((k, i) => textOf(rows[i]).includes(wrongIt.q.options.find
 const wpos = wrongIt.order.indexOf(missKey), cpos = wrongIt.order.indexOf(wrongIt.q.correct);
 ok(rows[wpos]._cls.has('wrong') && /Your answer/.test(textOf(rows[wpos])), 'the pick is marked as yours and wrong');
 ok(rows[cpos]._cls.has('right') && /Best answer/.test(textOf(rows[cpos])), 'the best answer is marked');
+
+H('9c. Each explanation names its question and links a prefilled report');
+/* Without the id a wrong-answer report could only quote the stem, which may
+   match several questions or none after an edit. The link prefills GitHub's
+   issue form, whose dropdowns accept only an exact option label: a label
+   that drifts from the form is dropped without any error, so the labels the
+   app sends are checked against the form itself. */
+const ref = find(card, n => n._cls && n._cls.has('qref'))[0];
+ok(!!ref && textOf(ref).includes(wrongIt.q.id), 'the review card shows the question id');
+const link = ref && find(ref, n => n.tag === 'a')[0];
+const href = link ? decodeURIComponent(link.href) : '';
+ok(/template=wrong-answer\.yml/.test(href), 'the report link opens the wrong-answer form');
+ok(href.includes('question=' + wrongIt.q.id) && href.includes('title=Wrong answer: ' + wrongIt.q.id),
+   'with the id in the title and the question field');
+const form = fs.readFileSync(PATHS.resolve('.github/ISSUE_TEMPLATE/wrong-answer.yml'), 'utf8');
+const optionsIn = id => { const m = form.split('id: ' + id)[1] || ''; return [...m.split(/- type:/)[0].matchAll(/^\s+- (.+)$/gm)].map(x => x[1].trim()); };
+const exams = optionsIn('exam'), wheres = optionsIn('where');
+ok(Object.values(O.REPORT_EXAMS).every(v => exams.includes(v)) && exams.includes('Not sure'),
+   'every exam label the app sends is an option in the form');
+ok(['Drill', 'Practice exam', 'Exam Simulation (CCAR-F)'].every(v => wheres.includes(v)),
+   'every location label the app sends is an option in the form');
+ok(href.includes('exam=' + O.REPORT_EXAMS['CCAR-F']) && href.includes('where=Exam Simulation (CCAR-F)'),
+   'and this link sends the simulation ones');
 
 H('10. Practice mode gives feedback immediately');
 O.simStart('practice', {});
