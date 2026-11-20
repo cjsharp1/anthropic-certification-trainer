@@ -362,9 +362,10 @@ function simPick(key) {
    read more. The other two options are there but folded away, because the
    near-miss is the one worth reading. */
 /* `order` is the keys in the order they were shown, so feedback can name an
-   option by the letter the reader actually saw. Called from the results
-   screen without it, where the shuffle is not recorded, it falls back to the
-   stored order — the letters are then self-consistent within the panel. */
+   option by the letter the reader actually saw. The results screen passes
+   the order saved with the attempt; attempts saved before that was recorded
+   fall back to the stored order, which simAnswerList uses too, so the
+   letters still agree within a card. */
 function simFeedback(q, picked, order) {
   const box = el('div', 'simfb');
   const ok = picked === q.correct;
@@ -507,7 +508,10 @@ function simSubmit(auto) {
     const picked = SIM.answers[q.id] || null;
     const ok = picked === q.correct;
     if (ok) correct++;
-    answers[q.id] = { picked, ok };
+    // The shuffled order is kept so the missed-question review can letter the
+    // options as they were seen. Attempts saved before this lack it, and
+    // review falls back to the stored order.
+    answers[q.id] = { picked, ok, order: it.order };
     (q.objectives || []).forEach(o => { const r = bump(byObj, o); r.n++; if (ok) r.ok++; });
     (q.domains || []).forEach(d => { const r = bump(byDom, d); r.n++; if (ok) r.ok++; });
     const scn = SIM.blocks[it.block].filler ? q.scn : SIM.blocks[it.block].scn;
@@ -616,7 +620,14 @@ function simResult(a) {
     wrap.appendChild(simHistoryTable(a.exam));
   }
 
-  const missed = SIM.list.filter(it => !a.answers[it.q.id].ok);
+  /* Built from the attempt, not the live sitting, so a past attempt reopened
+     from the history table can be reviewed too. Answers were saved in paper
+     order; a question since removed from the bank is skipped rather than
+     shown half-empty. */
+  const missed = Object.keys(a.answers)
+    .filter(id => !a.answers[id].ok)
+    .map(id => ({ q: simQuestion(id) }))
+    .filter(it => it.q);
   if (missed.length) {
     const act = el('div', 'actions');
     const b = el('button', 'btn', 'Review the ' + missed.length + ' you missed');
@@ -686,7 +697,9 @@ function simReviewMissed(a, missed) {
       (n + 1) + ' of ' + missed.length + ' · '
       + (q.scn ? simScenarioName(q.scn, a.exam) : 'Additional')));
     card.appendChild(el('p', 'simmissstem', q.stem));
-    card.appendChild(simFeedback(q, a.answers[q.id].picked));
+    const ans = a.answers[q.id];
+    card.appendChild(simAnswerList(q, ans.picked, ans.order));
+    card.appendChild(simFeedback(q, ans.picked, ans.order));
     wrap.appendChild(card);
   });
   const act = el('div', 'actions');
@@ -695,6 +708,34 @@ function simReviewMissed(a, missed) {
   act.appendChild(back);
   wrap.appendChild(act);
   window.scrollTo(0, 0);
+}
+
+/* The options as the reader saw them, graded. The feedback panel names
+   options only by letter, which works under a live question where the
+   options sit just above it but leaves the results screen with nothing to
+   read the letters against. Divs rather than disabled buttons: nothing here
+   is clickable, and a button would need its font restated. */
+function simAnswerList(q, picked, order) {
+  const keys = order && order.length ? order : q.options.map(o => o.key);
+  const wrap = el('div', 'opts simmissopts');
+  keys.forEach((key, pos) => {
+    const opt = q.options.find(o => o.key === key);
+    if (!opt) return;
+    const row = el('div', 'opt done');
+    if (key === q.correct) row.classList.add('right');
+    else if (key === picked) row.classList.add('wrong');
+    row.appendChild(el('span', 'optkey', String.fromCharCode(65 + pos)));
+    const txt = el('span', 'opttext', opt.text);
+    if (key === picked || key === q.correct) {
+      const tag = key === picked && key === q.correct ? 'Your answer · correct'
+        : key === picked ? 'Your answer' : 'Best answer';
+      txt.appendChild(el('span', 'simmisstag', tag));
+    }
+    row.appendChild(txt);
+    wrap.appendChild(row);
+  });
+  if (!picked) wrap.appendChild(el('div', 'muted small', 'You left this one unanswered.'));
+  return wrap;
 }
 
 /* ---------- start screen ---------- */
@@ -844,19 +885,29 @@ function simObjectivePicker() {
 function simAttemptList(exam) {
   const t = el('table', 'statstable');
   const head = el('thead'); const hr = el('tr');
-  ['When', 'Mode', 'Score', 'Estimate'].forEach(h => hr.appendChild(el('th', null, h)));
+  /* .statstable right-aligns every heading after the first, which suits
+     numbers; Mode is words, so it is pinned left and its cells follow. */
+  [['When'], ['Mode', 'txt'], ['Score'], ['Estimate'], ['']]
+    .forEach(([h, c]) => hr.appendChild(el('th', c || null, h)));
   head.appendChild(hr); t.appendChild(head);
   const tb = el('tbody');
   S.simAttempts.filter(a => a.exam === (exam || S.exam)).slice().reverse().forEach(a => {
     const tr = el('tr');
     tr.appendChild(el('td', null, new Date(a.ts).toLocaleDateString()));
     tr.appendChild(el('td', null, a.drill ? 'Objective drill' : a.mode === 'exam' ? 'Timed exam' : 'Practice'));
-    tr.appendChild(el('td', null, a.correct + '/' + a.total));
+    tr.appendChild(el('td', 'num', a.correct + '/' + a.total));
     const approx = Math.round(100 + (a.correct / Math.max(1, a.total)) * 900);
-    const td = el('td');
+    const td = el('td', 'num');
     if (a.drill) td.textContent = '—';
     else td.appendChild(el('span', 'tag ' + (approx >= PASS_MARK ? 'good' : 'warn'), String(approx)));
     tr.appendChild(td);
+    const open = el('td', 'num');
+    const btn = el('button', 'mini ghost', 'Results');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Results for the attempt on ' + new Date(a.ts).toLocaleDateString());
+    btn.onclick = () => simResult(a);
+    open.appendChild(btn);
+    tr.appendChild(open);
     tb.appendChild(tr);
   });
   t.appendChild(tb);

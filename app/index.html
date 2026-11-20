@@ -452,6 +452,11 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
 .simrevscn{font-size:0.95rem;margin:18px 0 8px}
 .simmiss{padding:16px 0;border-top:1px solid var(--line)}
 .simmissstem{font-size:1rem;line-height:1.55;max-width:74ch}
+.simmissopts{margin:4px 0 16px}
+.simmisstag{display:block;margin-top:4px;font-size:0.72rem;letter-spacing:.07em;
+  text-transform:uppercase;font-weight:600;color:var(--fg-dim)}
+.opt.right .simmisstag{color:var(--good)}
+.opt.wrong .simmisstag{color:var(--bad)}
 .simpick{margin-top:6px}
 /* The picker's rows run right up to the start button; give it room.
    (A score-report footnote used to sit here and provided the gap.) */
@@ -606,6 +611,7 @@ circle.tacc{fill:var(--accent);stroke:var(--surface);stroke-width:1.5}
 .statstable td{padding:9px 10px;border-bottom:1px solid
   color-mix(in srgb,var(--line) 55%,transparent);vertical-align:top}
 .statstable td.num,.statstable th:not(:first-child){text-align:right}
+.statstable th.txt{text-align:left}
 .statstable td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .statstable tr:last-child td{border-bottom:none}
 

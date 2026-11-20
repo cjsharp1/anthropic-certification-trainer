@@ -99,7 +99,7 @@ vm.runInContext([
   fs.readFileSync(PATHS.resolve('strikeout.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={initSim,renderSim,simStart,simRender,simPick,simGo,simReview,isStruck,'
-  + 'simSubmit,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,getSIM:function(){return SIM;}};'
+  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,getSIM:function(){return SIM;},clearSIM:function(){SIM=null;}};'
 ].join('\n;\n'), ctx, { filename: 'sim-ui.js' });
 const O = ctx.__o;
 const view = () => ctx.__view;
@@ -253,6 +253,10 @@ ok(squares.filter(s => s._cls.has('flag')).length === 1, 'one is marked flagged'
 
 H('9. Submitting scores the paper');
 SIM.list.forEach((it, n) => { if (n % 3 === 0) SIM.answers[it.q.id] = it.q.correct; });
+/* One deliberate wrong answer, for the missed-question review below. */
+const wrongIt = SIM.list[1];
+const missKey = wrongIt.order.find(k => k !== wrongIt.q.correct);
+SIM.answers[wrongIt.q.id] = missKey;
 const expected = SIM.list.filter(it => SIM.answers[it.q.id] === it.q.correct).length;
 O.simSubmit(false);
 ok(view() === 'simresult', 'it navigates to the results view');
@@ -270,6 +274,24 @@ ok(/By scenario/.test(res), 'and by scenario');
 ok(needsFiller ? /added from other scenarios/.test(res) : true,
    needsFiller ? 'the topped-up count is disclosed in the results'
                : 'no top-ups this run, so nothing to disclose');
+
+H('9b. The missed-question review shows the options themselves');
+/* The feedback panel refers to options by letter only. On the results screen
+   there was no option list above it, so a reader saw "B falls short" with no
+   way to tell what B said. The review must print every option's text, in the
+   order the reader saw them, with their pick and the best answer marked. */
+const missed = SIM.list.filter(it => !att.answers[it.q.id].ok);
+O.simReviewMissed(att, missed);
+const card = find(BY_ID.simResultBody, n => n._cls && n._cls.has('simmiss'))
+  .find(c => textOf(c).includes(wrongIt.q.stem));
+ok(!!card, 'the wrongly answered question has a review card');
+const rows = find(card, n => n._cls && n._cls.has('opt'));
+ok(rows.length === wrongIt.q.options.length, 'every option is listed, found ' + rows.length);
+ok(wrongIt.order.every((k, i) => textOf(rows[i]).includes(wrongIt.q.options.find(o => o.key === k).text)),
+   'in the shuffled order the reader saw');
+const wpos = wrongIt.order.indexOf(missKey), cpos = wrongIt.order.indexOf(wrongIt.q.correct);
+ok(rows[wpos]._cls.has('wrong') && /Your answer/.test(textOf(rows[wpos])), 'the pick is marked as yours and wrong');
+ok(rows[cpos]._cls.has('right') && /Best answer/.test(textOf(rows[cpos])), 'the best answer is marked');
 
 H('10. Practice mode gives feedback immediately');
 O.simStart('practice', {});
@@ -341,6 +363,22 @@ O.renderSim();
 const s2 = textOf(BY_ID.simStartBody);
 ok(/Your attempts/.test(s2), 'the start screen lists past attempts once there are any');
 ok(/Objectives across attempts/.test(s2), 'and shows the per-objective history table');
+
+H('14. A past attempt can be reopened and its misses reviewed');
+/* The results screen used to read the missed list from the live sitting, so
+   once that sitting was gone the only way back to a missed question was to
+   have stayed on the page. Reopening from history has no live sitting. */
+const hist = find(BY_ID.simStartBody, n => n.tag === 'button' && /Results/.test(n.textContent || ''));
+ok(hist.length === O.S.simAttempts.filter(x => x.exam === O.S.simAttempts[0].exam).length,
+   'each attempt row has a Results button, found ' + hist.length);
+const withMiss = O.S.simAttempts.slice().reverse().findIndex(x => Object.values(x.answers).some(v => !v.ok));
+O.clearSIM();
+hist[withMiss].onclick();
+ok(view() === 'simresult', 'it opens the results view');
+const again = find(BY_ID.simResultBody, n => n.tag === 'button' && /you missed/.test(n.textContent || ''));
+ok(again.length === 1, 'with the review-missed button, even with no live sitting');
+again[0].onclick();
+ok(find(BY_ID.simResultBody, n => n._cls && n._cls.has('simmiss')).length > 0, 'which lists the missed questions');
 
 console.log('');
 if (fail) { console.log(fail + ' failure' + (fail === 1 ? '' : 's')); process.exit(1); }
