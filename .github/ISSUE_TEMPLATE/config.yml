@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Latest release
+    url: https://github.com/cjsharp1/anthropic-certification-trainer/releases/latest
+    about: Check you have the newest version before reporting. Your version is at the foot of the sidebar.

@@ -1,0 +1,27 @@
+name: Suggestion
+description: A feature, a topic that needs more questions, or a change to how something works.
+title: "Suggestion: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Topics that need more coverage are welcome. **Please don't paste or describe questions from a real exam sitting**; naming the topic is enough.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The suggestion
+      description: What you'd like, and the problem it solves for someone studying.
+    validations:
+      required: true
+  - type: dropdown
+    id: exam
+    attributes:
+      label: Certification it relates to
+      multiple: true
+      options:
+        - CCAO-F (Associate, Foundations)
+        - CCDV-F (Developer, Foundations)
+        - CCAR-F (Architect, Foundations)
+        - CCAR-P (Architect, Professional)
+        - The app in general
