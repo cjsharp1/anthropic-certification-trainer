@@ -29,6 +29,8 @@ derived from them by short uncontroversial steps, does not ship.
 | CCAR-P hard | 15 | 15 |
 | Exam Simulation — fact-bearing | 118 | 118 |
 | Exam Simulation — judgement | 152 | not verified |
+| CCDV-F simulation set 1 | 62 | facts checked 2026-11-24 (see below) |
+| CCDV-F drill set 1 | 59 | facts checked 2026-11-24 (see below) |
 
 The hard-tier rows are verified one question at a time. The simulation rows
 are the pass recorded under *Exam Simulation bank* below: its fact-bearing
@@ -667,6 +669,68 @@ processing page on `platform.claude.com/docs` that day.
   disabling noisy categories, severity criteria, few-shot format,
   integration passes, calibrated confidence). **Reviewed as reasoning.**
 
+### CCDV-F set 1 (DV-001 to DV-062, dvx-001 to dvx-059), checked 2026-11-24
+
+Sixty-two simulation questions (`data-sim-questions-dv.js`) and fifty-nine
+drill questions (`data-questions-10.js`) from the architect handoff. The
+handoff's fact sheet lists the product facts they depend on, each checked
+against the documentation on 2026-11-24; the rows are copied below as
+delivered. "Volatile" means the detail has changed before or is likely to.
+Every question carries a `contentDate`, and those whose answer turns on a
+changeable detail carry `volatile: true`, so `grep volatile` finds what to
+re-check first.
+
+The flag is set per question, not per row, and 15 questions listed against a
+volatile row do not carry it: DV-006, DV-010, DV-015, DV-018, DV-030, DV-033,
+DV-043, DV-049, DV-055, DV-056, DV-057, DV-060, dvx-012, dvx-028 and dvx-039.
+Most rest on a stable part of the row (DV-033 on `max_tokens`, not on the
+newer stop reasons), but when a row's page changes, check these alongside the
+flagged ones.
+
+| Fact | Used by | Source | Volatile |
+|---|---|---|---|
+| Message Batches: usage billed at 50% of standard prices; batches expire if not done within 24 hours; results unordered, match by `custom_id` | DV-010, DV-015, DV-018, DV-044, dvx-012, dvx-013 | [Batch processing](https://platform.claude.com/docs/en/build-with-claude/batch-processing) | yes |
+| Streaming event order: `message_start`, content blocks (`content_block_start`, `content_block_delta`…, `content_block_stop`), `message_delta`, `message_stop`, plus `ping`; tool input arrives as `input_json_delta.partial_json` fragments to accumulate and parse at block stop; `message_delta` usage is cumulative | DV-014, dvx-014 | [Streaming](https://platform.claude.com/docs/en/build-with-claude/streaming) | no |
+| Errors: 429 `rate_limit_error` (rate, acceleration or spend limit), 529 `overloaded_error` (service-wide), 500, 504 `timeout_error`; SDKs retry connection errors, 429 and 5xx with backoff, twice by default, honoring `retry-after`; a spend-cap 429 has no `retry-after` and keeps failing; errors can arrive mid-stream after a 200 | DV-037, DV-038, DV-040, dvx-034, dvx-035 | [API errors](https://platform.claude.com/docs/en/api/errors) | yes |
+| For long requests, use streaming or the Message Batches API | dvx-035 | [API errors](https://platform.claude.com/docs/en/api/errors) | no |
+| Stop reasons: `end_turn`, `max_tokens`, `stop_sequence`, `tool_use`, `pause_turn` (server-tool loop hit its iteration limit; send the assistant content back), `refusal` (a 200, not an error), `model_context_window_exceeded` | DV-033, DV-057, dvx-028, dvx-055 | [Stop reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons) | yes |
+| Prompt caching: prefix order tools, system, messages; default 5-minute TTL, optional 1-hour TTL; 5m writes 1.25x, 1h writes 2x, reads 0.1x base input; prompts below the model's minimum are silently not cached; usage shows `cache_creation_input_tokens` and `cache_read_input_tokens`; changing `tool_choice` invalidates cached message blocks | DV-043, DV-044, dvx-039, dvx-040 | [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) | yes |
+| `tool_choice`: `auto` (default with tools), `any`, `tool`, `none`; `disable_parallel_tool_use`. **On Claude Opus 5.5, Sonnet 5.5 and the Fable/Mythos 5.x models, `any` and `tool` return 400**; use `auto` with strict tool use, or structured outputs | DV-050 note; no question uses forced choice as correct | [Define tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools), [Implement tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/implement-tool-use) | yes |
+| Structured outputs: JSON outputs via `output_config.format`; strict tool use via `strict: true` (grammar-constrained sampling) | DV-050, DV-049 | [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Strict tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) | yes |
+| Effort via `output_config.effort` (low, medium, high, xhigh, max; availability varies by model); adaptive thinking `thinking: {type: "adaptive"}`; fixed `budget_tokens` deprecated on recent models | dvx-032, dvx-033 | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) | yes |
+| Current lineup (Nov 2026): Fable 5.2, Opus 5.5, Sonnet 5.5, Haiku 5.5; recent generations use dateless IDs that are pinned snapshots; third-party platforms (Bedrock, Vertex AI) use their own IDs | DV-016, DV-027, dvx-016, dvx-023, dvx-037 | [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) | yes |
+| Token counting endpoint: free, rate limited, accepts tools, images and PDFs, returns input tokens; an estimate | dvx-041 | [Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting) | no |
+| Claude Code hooks: `PreToolUse` exit 2 blocks the call and sends stderr to Claude; exit 1 is non-blocking; JSON `permissionDecision: "deny"` also blocks; `PostToolUse` cannot block | DV-055, dvx-049, dvx-050 | [Hooks reference](https://code.claude.com/docs/en/hooks) | yes |
+| Settings precedence: managed > command line > local (`.claude/settings.local.json`) > project (`.claude/settings.json`) > user (`~/.claude/settings.json`); CLAUDE.md at `~/.claude/CLAUDE.md`, `CLAUDE.md` or `.claude/CLAUDE.md`, and `CLAUDE.local.md` | DV-030, dvx-024, dvx-025 | [Settings](https://code.claude.com/docs/en/settings) | yes |
+| Headless: `-p`/`--print`; `--output-format` text, json, stream-json; tokens as generated need `--verbose --include-partial-messages`; `--allowedTools`; `--json-schema`; `--bare` skips hooks, skills, plugins, MCP, memory and CLAUDE.md discovery | DV-031, dvx-026 | [Headless](https://code.claude.com/docs/en/headless) | yes |
+| MCP in Claude Code: scopes local (default, `~/.claude.json`), project (`.mcp.json`), user; `${VAR}` and `${VAR:-default}` expansion in `.mcp.json` | DV-056, dvx-052 | [Claude Code MCP](https://code.claude.com/docs/en/mcp) | yes |
+| MCP protocol: JSON-RPC 2.0, UTF-8; transports stdio (client launches server; stdout only MCP messages, logs on stderr) and Streamable HTTP (replaced HTTP+SSE); server features: resources, prompts, tools; client features: sampling, roots, elicitation | DV-060, dvx-056, dvx-057 | [MCP transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) | yes |
+| Agent SDK permission order: hooks, deny rules, ask rules, permission mode, allow rules, `canUseTool`; auto-approved calls never reach `canUseTool`; logic for every call belongs in a `PreToolUse` hook | DV-006, dvx-003 | [Agent SDK permissions](https://code.claude.com/docs/en/agent-sdk/permissions) | yes |
+| Skills use progressive disclosure: name and description load first, body and files on demand; MCP connects to data, Skills teach procedure, subagents isolate context | DV-061, DV-062, dvx-058 | [Skills explained](https://claude.com/blog/skills-explained) | no |
+
+Checked again on import, 2026-11-24:
+
+- **Forced `tool_choice`.** Re-read on the Define tools page ("Forcing tool
+  use"): on Claude Fable 5.2, Mythos 5.2, Opus 5.5, Sonnet 5.5, Fable 5.1 and
+  Mythos 5.1, `any` and `tool` return a 400, and the page points to `auto`
+  with strict tool use, or structured outputs. **Verified.** No CCDV-F set 1
+  question treats forced choice as correct. The tiebreaker guide's "Guaranteed
+  beats likely" example keeps forcing a strict tool as its best answer, because
+  the CCAR-F guide still tests it as a score-report objective; its explanation
+  says the newest models return a 400 and that production uses structured
+  outputs or strict tools with `tool_choice` auto instead.
+- **Links.** Every source URL cited by the 62 simulation questions, and every
+  source in the table above, returned 200, including the CCDV-F exam guide PDF
+  and the pages the fact sheet had not re-opened (Building effective agents
+  among them).
+- **Item count.** Guide v1.0 says 53 items in 120 minutes. A prep site reports
+  70 items (60 scored) from 2026-12-07; the official guide has not confirmed
+  it. The count is `sim.items` in `data-exams.js`, so a confirmed change is
+  one number. **Not verified** beyond the guide.
+- The judgement questions in both sets, where the answer is a defensible
+  design call rather than a documented fact, are **reviewed as reasoning**,
+  as for the CCAR-F simulation.
+
 ## Re-verification
 
 Claims grounded in documentation should be re-checked when the docs change.
@@ -679,4 +743,5 @@ product facts came from `code.claude.com/docs` and `platform.claude.com/docs`
 on 2026-11-11, and two of them had already moved under the bank's feet — the
 Task tool renamed to Agent, and three documentation URLs consolidated. The
 Claude Code surface moves faster than the exam guide, so the CLI, hooks,
-subagent and MCP clusters are the ones most worth re-checking first.
+subagent and MCP clusters are the ones most worth re-checking first. For
+CCDV-F set 1, start with the questions marked `volatile: true`.
