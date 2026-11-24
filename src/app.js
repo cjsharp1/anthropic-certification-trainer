@@ -10,6 +10,9 @@
    never shown, so the old name here costs nothing. */
 const STORE_KEY = 'claude-cert-trainer-v1';
 const PASS_MARK = 720;
+/* "Select TWO", as the real exams word a multiple-response item. Shared by
+   the recall quiz and the Exam Simulation so the two never disagree. */
+const SELECT_WORD = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'];
 
 /* ---------- state ---------- */
 const BLANK = {
@@ -3490,12 +3493,11 @@ function renderQuiz() {
 
   const multi = !!q.multi;
   const nAns = answersOf(q).length;
-  const WORD = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'];
   // The real exams state how many to select. Suppress it when every option is
   // correct, because there the count IS the answer.
   $('#qHint').textContent = !multi ? 'Select ONE'
     : nAns >= q.opts.length ? 'Select all that apply'
-    : `Select ${WORD[nAns] || nAns}`;
+    : `Select ${SELECT_WORD[nAns] || nAns}`;
   // A right-click gesture nobody is told about is a gesture nobody uses.
   $('#qHint').title = 'Right-click an option to rule it out, and again to '
     + 'restore it. Keyboard: focus the option and press X.';

@@ -35,6 +35,11 @@ const EXAMS = {
     blurb: "Architectural judgment for engineers designing Claude-powered agentic systems.",
     audience: "~6 months hands-on Claude experience recommended.",
     structure: "4 scenarios drawn from a bank of 6",
+    /* How the Exam Simulation builds a paper. "scenario" draws `blocks`
+       scenarios and asks `perBlock` questions on each, as the real CCAR-F
+       sitting does. sim.js falls back to exactly these values for an exam
+       with no sim block, so they are also the default. */
+    sim: { mode: "scenario", blocks: 4, perBlock: 15, minutes: 120, multi: false },
     domains: [
       { id: "d1", num: 1, name: "Agentic Architecture & Orchestration", weight: 27 },
       { id: "d2", num: 2, name: "Tool Design & MCP Integration",        weight: 18 },
@@ -110,6 +115,12 @@ const EXAMS = {
     fee: "$125 USD",
     blurb: "Build production-grade applications and make real-world engineering decisions.",
     audience: "AI engineers / software developers, 1-5 yrs experience, 6+ months with Claude.",
+    /* CCDV-F names no scenarios, so a paper is drawn by domain quota: each
+       domain's weight times `items`, rounded by largest remainder. */
+    sim: { mode: "domain", items: 53, minutes: 120, multi: true,
+           // Guide v1.0 says 53. A prep site reports 70 items (60 scored) from
+           // 2026-12-07. Change this one number if the official guide confirms it.
+           itemsNote: "Guide v1.0 (July 2026): 53 items" },
     // Numbered to match the official guide's domain order, which is not by weight.
     // The id strings are internal keys and intentionally stable — v1 has always
     // meant Applications and Integration in the question bank.

@@ -444,6 +444,28 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
 .simstem{font-size:1.12rem;line-height:1.6;font-family:var(--f-body);
   font-weight:400;max-width:74ch;white-space:pre-wrap}
 .simopt{align-items:flex-start}
+/* "Select TWO": stated on every CCDV-F item, as the real exam does. */
+.simselect{font-size:0.72rem;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:600;color:var(--clay);margin:4px 0 10px}
+.simcheckrow > .btn{margin-top:10px}
+/* Exhibits: code, streams, config and traces the stem refers to. No
+   highlighter (the app has no dependencies); monospace, a quiet surface,
+   and a horizontal scroll so long lines are never wrapped mid-token. */
+.simexhibit{margin:4px 0 18px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface-2);max-width:86ch;overflow:hidden}
+.simexhibitcap{display:flex;gap:9px;align-items:baseline;padding:7px 12px;
+  border-bottom:1px solid var(--line);font-size:0.86rem}
+.simexhibitlabel{font-size:0.68rem;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:600;color:var(--fg-dim)}
+.simexhibittitle{font-family:var(--f-mono);font-weight:600}
+.simexhibitlang{margin-left:auto;font-family:var(--f-mono);font-size:0.72rem;color:var(--fg-dim)}
+.simexhibitbody{margin:0;padding:11px 12px;overflow-x:auto;font-family:var(--f-mono);
+  font-size:0.86rem;line-height:1.5;white-space:pre;tab-size:4}
+/* The global inline-code chip (padding, border) would indent only the
+   first line of a block, so the exhibit's code element is reset to plain. */
+.simexhibitbody code{font-family:inherit;font-size:inherit;padding:0;border:0;
+  background:none;border-radius:0}
+.simmiss .simexhibit{margin:2px 0 12px}
 .optkey{font-family:var(--f-mono);font-weight:600;flex:0 0 auto;
   min-width:1.3em;color:var(--fg-dim)}
 .opt.sel .optkey{color:var(--accent)}
@@ -1651,7 +1673,7 @@ body:has(.ttsbar:not([hidden])) .main{padding-bottom:160px}
     <section class="view" id="view-sim" hidden>
       <div class="hdr">
         <h1>Exam simulation</h1>
-        <div class="sub">Scenario blocks, as the real CCAR-F sitting is built</div>
+        <div class="sub" id="simSub">Scenario blocks, as the real CCAR-F sitting is built</div>
       </div>
 
       <!-- start screen -->
@@ -1673,7 +1695,12 @@ body:has(.ttsbar:not([hidden])) .main{padding-bottom:160px}
         <!-- h2, not h1: the page heading above already owns the h1, and a
              stem is a question within that page rather than its title. -->
         <h2 class="qtext simstem" id="simStem"></h2>
+        <!-- code, a trace or config the stem refers to; filled with
+             textContent by simExhibit(), never parsed as markup -->
+        <div id="simExhibit" hidden></div>
+        <div class="simselect" id="simSelect" hidden></div>
         <div class="opts" id="simOpts" role="radiogroup" aria-label="Answer options"></div>
+        <div class="simcheckrow"><button class="btn sec" id="simCheck" type="button" hidden>Check answer</button></div>
         <div class="explain" id="simFeedback" role="status" aria-live="polite" hidden></div>
         <div class="examnav">
           <button class="mini ghost" id="simPrev">&larr; Previous</button>

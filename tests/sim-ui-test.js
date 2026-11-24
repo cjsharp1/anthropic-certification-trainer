@@ -97,11 +97,14 @@ vm.runInContext([
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-tiebreakers.js'), 'utf8'),
   shim,
+  // "Select TWO" comes from app.js's list, lifted out whole rather than
+  // copied, so the hint is checked against the words the app really uses.
+  fs.readFileSync(PATHS.resolve('app.js'), 'utf8').match(/const SELECT_WORD = \[[^\]]*\];/)[0],
   fs.readFileSync(PATHS.resolve('strikeout.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('report.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={initSim,renderSim,simStart,simRender,simPick,simGo,simReview,isStruck,'
-  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,TIEBREAKERS,REFLEX_N:TIEBREAKER_REFLEXES.firstStep.length,simFeedback,getSIM:function(){return SIM;},REPORT_EXAMS:REPORT_EXAMS,clearSIM:function(){SIM=null;}};'
+  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,TIEBREAKERS,REFLEX_N:TIEBREAKER_REFLEXES.firstStep.length,simFeedback,simExhibit,simResult,simIsMulti,simCorrectKeys,getSIM:function(){return SIM;},REPORT_EXAMS:REPORT_EXAMS,clearSIM:function(){SIM=null;}};'
 ].join('\n;\n'), ctx, { filename: 'sim-ui.js' });
 const O = ctx.__o;
 const view = () => ctx.__view;
@@ -460,6 +463,127 @@ const again = find(BY_ID.simResultBody, n => n.tag === 'button' && /you missed/.
 ok(again.length === 1, 'with the review-missed button, even with no live sitting');
 again[0].onclick();
 ok(find(BY_ID.simResultBody, n => n._cls && n._cls.has('simmiss')).length > 0, 'which lists the missed questions');
+
+H('15. A CCDV-F paper: domain start screen, multi-select, exhibits, domain results');
+/* No real CCDV-F questions ship yet, so the synthetic bank from
+   tests/fixtures/sim-dv.js stands in. Added last, after every check that
+   reads the CCAR-F bank. */
+const DV = require('./fixtures/sim-dv');
+O.SIM_QUESTIONS.push(...DV.questions());
+O.SIM_OBJECTIVES.push(...DV.objectives());
+O.clearSIM();
+O.S.exam = 'CCDV-F';
+O.S.simAttempts = [];
+O.S.simObjSel = [];
+O.renderSim();
+const dvStart = textOf(BY_ID.simStartBody);
+/* The lede used to be one hard-coded sentence about drawing 4 of 6
+   scenarios. On CCDV-F, which names none, that would describe the wrong exam. */
+ok(/53 questions in 120 minutes across eight domains/.test(dvStart),
+   'the start screen describes a 53-question, 120-minute paper across eight domains');
+ok(/select more than one answer/.test(dvStart), 'and says some questions ask for more than one answer');
+ok(!/scenarios and asks/.test(dvStart), 'and says nothing about drawing scenarios');
+ok(/every domain can fill its share/.test(dvStart), 'the bank line counts domains against their shares');
+// The subtitle was static markup naming CCAR-F's scenario blocks.
+ok(BY_ID.simSub.textContent === 'Weighted by domain, as the real CCDV-F paper is built',
+   'the page subtitle describes the CCDV-F paper, not CCAR-F\'s scenario blocks');
+
+O.simStart('practice', {});
+const DP = O.getSIM();
+ok(DP.total === 53 && DP.list.every(it => it.q.exam === 'CCDV-F'), 'a practice paper has 53 CCDV-F questions');
+ok(BY_ID.simBlockLabel.hidden === true && BY_ID.simScenario.hidden === true,
+   'with no scenario, the question shows only "Question n of N"');
+ok(/Question 1 of 53/.test(BY_ID.simProg.textContent), 'and the count reads ' + BY_ID.simProg.textContent);
+
+/* Multi-select in practice. Grading waits until the reader holds as many
+   picks as the question asks for; grading on the first click, as a
+   single-select does, would mark every multi-select wrong. */
+const goTo = it => { DP.i = DP.list.indexOf(it); O.simRender(); };
+const optByKey = (it, key) => BY_ID.simOpts.children[it.order.indexOf(key)];
+const multis = DP.list.filter(it => O.simIsMulti(it.q));
+const m1 = multis[0];
+goTo(m1);
+ok(BY_ID.simSelect.hidden === false && BY_ID.simSelect.textContent === 'Select TWO', 'a multi-select says "Select TWO"');
+ok(BY_ID.simOpts.getAttribute('role') === 'group'
+   && BY_ID.simOpts.children.every(b => b.getAttribute('role') === 'checkbox'),
+   'its options are checkboxes in a group, not radios');
+const [k1, k2] = O.simCorrectKeys(m1.q);
+optByKey(m1, k1).onclick();
+ok(BY_ID.simFeedback.hidden === true, 'one pick of two does not grade it yet');
+ok(BY_ID.simCheck.hidden === false, 'and a Check button is offered');
+optByKey(m1, k2).onclick();
+ok(BY_ID.simFeedback.hidden === false && /Correct/.test(textOf(BY_ID.simFeedback)),
+   'the second pick grades it, and both right is correct');
+
+const m2 = multis[1];
+goTo(m2);
+optByKey(m2, O.simCorrectKeys(m2.q)[0]).onclick();
+BY_ID.simCheck.onclick();
+const m2fb = textOf(BY_ID.simFeedback);
+ok(/Not the best answers/.test(m2fb) && /no partial credit/.test(m2fb),
+   'checking with one of two picked grades it wrong, and says there is no partial credit');
+
+/* The cap. Silently swapping out an earlier pick would change an answer the
+   reader did not touch, so a third option does nothing in exam mode. */
+O.clearSIM();
+O.simStart('exam', {});
+const DE = O.getSIM();
+const m3 = DE.list.find(it => O.simIsMulti(it.q));
+DE.i = DE.list.indexOf(m3); O.simRender();
+const wrongs = m3.order.filter(k => !O.simCorrectKeys(m3.q).includes(k));
+[O.simCorrectKeys(m3.q)[0], wrongs[0], wrongs[1]].forEach(k => BY_ID.simOpts.children[m3.order.indexOf(k)].onclick());
+ok(JSON.stringify(DE.answers[m3.q.id]) === JSON.stringify([O.simCorrectKeys(m3.q)[0], wrongs[0]].sort()),
+   'a third pick on a select-two question does nothing until one is cleared');
+BY_ID.simOpts.children[m3.order.indexOf(wrongs[0])].onclick();
+BY_ID.simOpts.children[m3.order.indexOf(O.simCorrectKeys(m3.q)[0])].onclick();
+ok(!(m3.q.id in DE.answers), 'clearing every pick leaves the question unanswered, not answered with nothing');
+
+/* Exhibits hold code, HTML and quotes. Set with innerHTML, a <script> in
+   one would be parsed and could run; it must arrive as text. */
+const scriptQ = O.SIM_QUESTIONS.find(q => q.exhibit && q.exhibit.body === DV.SCRIPT_EXHIBIT);
+DE.list[DE.i] = { q: scriptQ, block: 0, order: scriptQ.options.map(o => o.key) };
+O.simRender();
+const exNodes = walk(BY_ID.simExhibit);
+const code = exNodes.find(n => n.tag === 'code');
+ok(BY_ID.simExhibit.hidden === false && code && code.textContent === DV.SCRIPT_EXHIBIT,
+   'an exhibit is shown, its body set as text exactly');
+ok(!exNodes.some(n => n.tag === 'script') && !exNodes.some(n => /<script/i.test(n._h || '')),
+   'an exhibit containing <script> renders as text, never as markup');
+ok(/page\.html/.test(textOf(BY_ID.simExhibit)), 'and carries its title');
+
+/* Results. CCDV-F's real score report is by domain, so that comes first,
+   and a paper with no scenarios has no scenario table to show. */
+O.simSubmit(false);
+const dvRes = find(BY_ID.simResultBody, n => n._cls && n._cls.has('labsec')).map(n => n.textContent);
+ok(dvRes[0] === 'Percent correct by domain' && dvRes.includes('By sub-skill'),
+   'CCDV-F results lead with the domain breakdown, then sub-skills: ' + dvRes.join(' | '));
+ok(!dvRes.includes('By scenario'), 'and show no scenario table');
+
+/* The missed-question review repeats the exhibit, or a question about code
+   could not be reviewed at all. */
+const dvAtt = O.S.simAttempts[O.S.simAttempts.length - 1];
+O.simReviewMissed(dvAtt, [{ q: scriptQ }]);
+ok(find(BY_ID.simResultBody, n => n.tag === 'code').some(n => n.textContent === DV.SCRIPT_EXHIBIT),
+   'the missed-question review shows the exhibit again');
+
+/* Attempts saved before multi-select hold a bare string answer and no saved
+   option order. They are never migrated, so review must still read them. */
+const legacyQ = O.SIM_QUESTIONS.find(q => q.exam === 'CCAR-F');
+const legacyWrong = legacyQ.options.find(o => o.key !== legacyQ.correct).key;
+const legacy = { ts: Date.now() - 86400000, exam: 'CCAR-F', mode: 'exam', total: 1, correct: 0, ms: 60000,
+  byObj: {}, byDom: {}, byScn: {}, answers: { [legacyQ.id]: { picked: legacyWrong, ok: false } } };
+let legacyThrew = null;
+try { O.simReviewMissed(legacy, [{ q: legacyQ }]); } catch (e) { legacyThrew = e; }
+const legacyText = textOf(BY_ID.simResultBody);
+ok(!legacyThrew && /Your answer/.test(legacyText) && /Best answer/.test(legacyText),
+   'a pre-existing CCAR-F attempt with string answers still renders in review'
+   + (legacyThrew ? ': ' + legacyThrew.message : ''));
+ok(wheres.includes('Exam Simulation (CCDV-F)'), 'the report form offers the CCDV-F simulation as a location');
+O.S.exam = 'CCAR-F';
+O.clearSIM();
+O.renderSim();
+ok(BY_ID.simSub.textContent === 'Scenario blocks, as the real CCAR-F sitting is built',
+   'switching back to CCAR-F restores its subtitle');
 
 console.log('');
 if (fail) { console.log(fail + ' failure' + (fail === 1 ? '' : 's')); process.exit(1); }
