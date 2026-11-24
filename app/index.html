@@ -332,6 +332,10 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
 .sq:hover{border-color:var(--accent);color:var(--accent)}
 .sq.done{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-soft)}
 .sq.flag{border-color:var(--warn);color:var(--warn)}
+/* Incomplete multi-select: a dashed outline and no fill, so it cannot be
+   mistaken for the filled "done" square. */
+.sq.part{border-style:dashed;border-color:var(--accent);color:var(--accent);background:transparent}
+.revstat.part{border-left:3px dashed var(--accent)}
 .sq.cur{outline:2px solid var(--accent);outline-offset:1px}
 .qscenario{font-family:var(--f-read);font-size:0.95rem;
   color:var(--fg-dim);border-left:3px solid var(--accent);padding:4px 0 4px 12px;

@@ -64,6 +64,27 @@ function simIsCorrect(q, picked) {
   const want = simCorrectKeys(q), got = simPickedKeys(picked);
   return got.length === want.length && want.every(k => got.includes(k));
 }
+/* Where an answer stands: 'none', 'partial' or 'full'. A multi-select holding
+   fewer picks than it asks for is partial, and scores zero exactly as an
+   unanswered one does, so the review screen and the submit warning must not
+   count it as answered: "53 answered" with one pick on a select-two item
+   tells the candidate there is nothing left to do. */
+function simAnswerState(q, picked) {
+  const n = simPickedKeys(picked).length;
+  if (!n) return 'none';
+  return simIsMulti(q) && n < simSelectCount(q) ? 'partial' : 'full';
+}
+/* Tallies for the review screen and the submit warning, from one place. */
+function simPaperCounts() {
+  const c = { full: 0, partial: 0, none: 0 };
+  SIM.list.forEach(it => { c[simAnswerState(it.q, SIM.answers[it.q.id])]++; });
+  return c;
+}
+/* Letters as a sentence would list them: "B", "B and D", "A, B and D". */
+function simJoinLetters(ls) {
+  if (ls.length < 2) return ls.join('');
+  return ls.slice(0, -1).join(', ') + ' and ' + ls[ls.length - 1];
+}
 function simSelectWord(n) {
   return (typeof SELECT_WORD !== 'undefined' && SELECT_WORD[n]) || String(n);
 }
@@ -563,7 +584,7 @@ function simFeedback(q, picked, order) {
   const wantShown = shown.filter(k => want.includes(k));
   const head = el('div', 'simfbhead ' + (ok ? 'good' : 'bad'));
   head.textContent = ok ? 'Correct'
-    : multi ? 'Not the best answers — ' + wantShown.map(letterOf).join(' and ') + ' are'
+    : multi ? 'Not the best answers — ' + simJoinLetters(wantShown.map(letterOf)) + ' are'
     : 'Not the best answer — ' + letterOf(q.correct) + ' is';
   box.appendChild(head);
 
@@ -665,7 +686,8 @@ function simToggleFlag() {
 
 function simReview() {
   SIM.reviewing = true;
-  const answered = SIM.list.filter(it => SIM.answers[it.q.id]).length;
+  const counts = simPaperCounts();
+  const answered = counts.full;
   const flagged = SIM.list.filter(it => SIM.flags[it.q.id]).length;
   const wrap = $('#simReviewBody'); wrap.innerHTML = '';
 
@@ -676,14 +698,18 @@ function simReview() {
     c.appendChild(el('div', 'muted small', label));
     return c;
   };
+  stats.append(stat(answered, 'answered', 'good'));
+  // Shown only when it can happen: a CCAR-F paper has no multi-select items.
+  if (counts.partial) stats.append(stat(counts.partial, 'incomplete', 'part'));
   stats.append(
-    stat(answered, 'answered', 'good'),
-    stat(SIM.total - answered, 'unanswered', SIM.total - answered ? 'bad' : ''),
+    stat(counts.none, 'unanswered', counts.none ? 'bad' : ''),
     stat(flagged, 'flagged for review', flagged ? 'warn' : ''));
   wrap.appendChild(stats);
   wrap.appendChild(el('p', 'muted small',
     'Click any question to go back to it. Unanswered questions score zero — '
-    + 'there is no penalty for guessing.'));
+    + 'there is no penalty for guessing.'
+    + (counts.partial ? ' Incomplete ones, shown with a dashed outline, hold fewer '
+      + 'picks than they ask for and also score zero.' : '')));
 
   SIM.blocks.forEach((b, bi) => {
     // A domain paper's single block has no scenario to head it.
@@ -694,7 +720,17 @@ function simReview() {
     SIM.list.forEach((it, i) => {
       if (it.block !== bi) return;
       const btn = el('button', 'sq', String(i + 1));
-      if (SIM.answers[it.q.id]) btn.classList.add('done');
+      const state = simAnswerState(it.q, SIM.answers[it.q.id]);
+      if (state === 'full') btn.classList.add('done');
+      /* Incomplete gets its own mark, never the filled "done" one: at a
+         glance the grid must not say a question is finished when it scores
+         zero as it stands. The label says it for a screen reader too. */
+      if (state === 'partial') {
+        btn.classList.add('part');
+        btn.setAttribute('aria-label', 'Question ' + (i + 1) + ', incomplete: '
+          + simPickedKeys(SIM.answers[it.q.id]).length + ' of ' + simSelectCount(it.q) + ' picked');
+        btn.title = 'Incomplete';
+      }
       if (SIM.flags[it.q.id]) btn.classList.add('flag');
       btn.onclick = () => { SIM.reviewing = false; SIM.i = i; simRender(); go('sim'); };
       grid.appendChild(btn);
@@ -1355,9 +1391,14 @@ function initSim() {
   };
   $('#simReviewBack').onclick = () => { SIM.reviewing = false; simRender(); go('sim'); };
   $('#simSubmitExam').onclick = () => {
-    const un = SIM.total - SIM.list.filter(it => SIM.answers[it.q.id]).length;
-    const msg = un
-      ? 'Submit with ' + un + ' question' + (un === 1 ? '' : 's') + ' unanswered? They score zero.'
+    // Incomplete multi-selects score zero too, so they are named here rather
+    // than counted as answered.
+    const c = simPaperCounts();
+    const parts = [];
+    if (c.none) parts.push(c.none + ' question' + (c.none === 1 ? '' : 's') + ' unanswered');
+    if (c.partial) parts.push(c.partial + ' incomplete');
+    const msg = parts.length
+      ? 'Submit with ' + parts.join(' and ') + '? They score zero.'
       : 'Submit the paper? You cannot change answers afterwards.';
     if (!confirm(msg)) return;
     simSubmit(false);

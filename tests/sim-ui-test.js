@@ -538,6 +538,36 @@ BY_ID.simOpts.children[m3.order.indexOf(wrongs[0])].onclick();
 BY_ID.simOpts.children[m3.order.indexOf(O.simCorrectKeys(m3.q)[0])].onclick();
 ok(!(m3.q.id in DE.answers), 'clearing every pick leaves the question unanswered, not answered with nothing');
 
+/* One pick on a "Select TWO" item is incomplete, not answered. It scores
+   zero as it stands, so a review screen counting it as answered, or a
+   filled square in the grid, tells the candidate the item is finished when
+   it is not; the submit warning must name it for the same reason. */
+BY_ID.simOpts.children[m3.order.indexOf(O.simCorrectKeys(m3.q)[0])].onclick();
+O.simReview();
+const revText = textOf(BY_ID.simReviewBody);
+const answeredN = Object.keys(DE.answers).length - 1;
+ok(/\b1\s+incomplete\b/.test(revText) && new RegExp('\\b' + answeredN + '\\s+answered\\b').test(revText),
+   'the review counts one pick on a select-two item as incomplete, not answered');
+const sqFor = find(BY_ID.simReviewBody, n => n.tag === 'button' && n._cls.has('sq'))[DE.list.indexOf(m3)];
+ok(sqFor._cls.has('part') && !sqFor._cls.has('done'),
+   'and marks it in the grid as incomplete, never with the filled "done" mark');
+let asked = null;
+const realConfirm = ctx.confirm;
+ctx.confirm = m => { asked = m; return false; };
+BY_ID.simSubmitExam.onclick();
+ctx.confirm = realConfirm;
+ok(/\b1 incomplete\b/.test(asked || '') && O.getSIM() === DE,
+   'submitting warns about the incomplete item: "' + asked + '"');
+O.simGo(0);
+
+/* Correct letters read as a sentence lists them. Joining every letter with
+   "and" gave "A and B and D" on a select-three item. */
+const tri = Object.assign({}, m3.q, { id: 'FX-tri', select: 3, correct: ['A', 'B', 'D'] });
+const triFb = textOf(O.simFeedback(tri, ['A'], ['A', 'B', 'C', 'D', 'E']));
+ok(/A, B and D are/.test(triFb), 'three correct letters read "A, B and D"');
+const duoFb = textOf(O.simFeedback(m3.q, [], m3.q.options.map(o => o.key)));
+ok(/Not the best answers — [A-F] and [A-F] are/.test(duoFb), 'two read "B and D", with no comma');
+
 /* Exhibits hold code, HTML and quotes. Set with innerHTML, a <script> in
    one would be parsed and could run; it must arrive as text. */
 const scriptQ = O.SIM_QUESTIONS.find(q => q.exhibit && q.exhibit.body === DV.SCRIPT_EXHIBIT);
