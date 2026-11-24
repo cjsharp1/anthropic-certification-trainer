@@ -91,6 +91,10 @@ and resolves `../`-prefixed script paths against `app/`.
 `a` is the **0-based index** into `opts`. `exam` may be an array for questions
 shared between certifications, with `also:{...}` mapping the domain per exam.
 `scn` ties a question to a scenario; `kind` is `recall` or `scenario`.
+Optional `sk` names a sub-skill (`DV-2.3`); `validate.js` checks it exists and
+sits in the question's domain. `volatile` and `contentDate` mark answers that
+rest on product details likely to change, so stale ones can be found; keep
+both when importing.
 
 Question-writing conventions worth keeping:
 
