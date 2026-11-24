@@ -94,7 +94,9 @@ const shim = `
 vm.runInContext([
   fs.readFileSync(PATHS.resolve('data-exams.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-questions-dv.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-objectives-dv.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-tiebreakers.js'), 'utf8'),
   shim,
   // "Select TWO" comes from app.js's list, lifted out whole rather than
@@ -131,9 +133,12 @@ ok(!threw, 'renderSim() runs' + (threw ? ': ' + threw.message : ''));
 const start = BY_ID.simStartBody;
 const startText = textOf(start);
 /* The bank grows as sets are imported, so assert it states the CURRENT
-   size rather than a number frozen at the time this test was written. */
-ok(new RegExp(O.SIM_QUESTIONS.length + ' questions in the bank').test(startText),
-   'it states the bank size (' + O.SIM_QUESTIONS.length + ')');
+   size rather than a number frozen at the time this test was written. The
+   pool holds two exams since CCDV-F arrived, so the size is this exam's
+   share of it: counting the whole pool would overstate CCAR-F's bank. */
+const arBank = O.SIM_QUESTIONS.filter(q => q.exam === 'CCAR-F').length;
+ok(new RegExp('\\b' + arBank + ' questions in the bank').test(startText),
+   'it states the CCAR-F bank size (' + arBank + '), not the whole pool');
 ok(/4 of the 6 scenarios/.test(startText), 'it explains the 4-of-6 scenario draw');
 ok(/15 questions on each/.test(startText), 'it states 15 questions per scenario');
 ok(/120\s*minutes/.test(startText), 'it states the 120-minute clock');
@@ -171,7 +176,9 @@ ok(rxRows.length === O.REFLEX_N, 'it lists every symptom and first fix, found ' 
 ok(!tbRows.some(r => /Quick reflexes/.test(textOf(r))), 'and the guide no longer carries them as a row');
 const rc = O.TIEBREAKERS.find(t => t.id === 'root-cause');
 const rcRow = tbRows.find(r => textOf(r).includes(rc.name));
-const rcN = O.SIM_QUESTIONS.filter(q => rc.tags.includes(q.tiebreaker)).length;
+// The guide counts the selected exam's questions: a CCAR-F reader is told
+// how many CCAR-F questions turn on a principle, not the whole pool's.
+const rcN = O.SIM_QUESTIONS.filter(q => q.exam === 'CCAR-F' && rc.tags.includes(q.tiebreaker)).length;
 ok(!!rcRow && textOf(rcRow).includes(rc.rule) && textOf(rcRow).includes(rcN + ' questions'),
    'a row shows its rule and the number of bank questions (' + rcN + ')');
 ok(!!rcRow && textOf(rcRow).includes(rc.example.best) && textOf(rcRow).includes(rc.example.runnerUp),
@@ -465,12 +472,14 @@ again[0].onclick();
 ok(find(BY_ID.simResultBody, n => n._cls && n._cls.has('simmiss')).length > 0, 'which lists the missed questions');
 
 H('15. A CCDV-F paper: domain start screen, multi-select, exhibits, domain results');
-/* No real CCDV-F questions ship yet, so the synthetic bank from
-   tests/fixtures/sim-dv.js stands in. Added last, after every check that
-   reads the CCAR-F bank. */
+/* The real CCDV-F set 1 is loaded; the synthetic bank from
+   tests/fixtures/sim-dv.js is added on top for what the real data cannot
+   pin deterministically, such as an exhibit holding a <script> element.
+   Added last, after every check that reads the CCAR-F bank. */
 const DV = require('./fixtures/sim-dv');
 O.SIM_QUESTIONS.push(...DV.questions());
-O.SIM_OBJECTIVES.push(...DV.objectives());
+// The real sub-skill list is loaded; add only ids it lacks.
+O.SIM_OBJECTIVES.push(...DV.objectives().filter(o => !O.SIM_OBJECTIVES.some(x => x.id === o.id)));
 O.clearSIM();
 O.S.exam = 'CCDV-F';
 O.S.simAttempts = [];

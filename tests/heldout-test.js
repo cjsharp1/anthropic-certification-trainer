@@ -126,9 +126,11 @@ H('3b. Quick quiz draws both pools where a simulation exists');
   ok(A.simAvailable('CCAR-F'), 'CCAR-F has a simulation, so its quick quiz uses that pool');
 
   /* An exam with no simulation keeps the old reservation, because its
-     full-length mock is still the only full-length sitting it has. */
-  const noSim = ['CCDV-F', 'CCAO-F', 'CCAR-P'].filter(c => !A.simAvailable(c));
-  ok(noSim.length === 3, 'the other three have no simulation bank yet');
+     full-length mock is still the only full-length sitting it has. CCDV-F
+     joined CCAR-F with a simulation on 2026-11-24, so two remain without. */
+  ok(A.simAvailable('CCDV-F'), 'CCDV-F has a simulation too, so its quick quiz uses that pool');
+  const noSim = ['CCAO-F', 'CCAR-P'].filter(c => !A.simAvailable(c));
+  ok(noSim.length === 2, 'the other two have no simulation bank yet');
 }
 
 H('4. Exam modes draw only from the held-out pool');

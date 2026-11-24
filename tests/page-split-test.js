@@ -56,7 +56,7 @@ function boot(state) {
   [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].forEach(m =>
     vm.runInContext(fs.readFileSync(P.resolve(m[1]), 'utf8'), ctx, { filename: m[1] }));
   vm.runInContext('globalThis.__x={renderDash,renderRevisit,renderAnalytics,renderSettings,'
-    + 'poolFor,qDomainFor,statsFor,simAvailable,EXAM_ORDER,EXAMS,S,'
+    + 'poolFor,qDomainFor,statsFor,simAvailable,simAbsorbsHard,EXAM_ORDER,EXAMS,S,'
     + 'byId:id=>document.getElementById(id)};', ctx);
   return ctx.__x;
 }
@@ -245,13 +245,19 @@ H('The simulation gate drives every mode control consistently');
        code + ': full-length practice ' + (here ? 'hidden' : 'shown'));
     ok(hidden('btnExam') === here,
        code + ': timed mock ' + (here ? 'hidden' : 'shown'));
-    if (here) ok(hidden('btnHard') === true,
+    /* The hard tier goes only where the simulation absorbed it. CCAR-F's
+       did; CCDV-F's simulation was written fresh and holds none of its hard
+       questions, so hiding the button there would strand them. */
+    if (A.simAbsorbsHard(code)) ok(hidden('btnHard') === true,
        code + ': hard tier hidden, its questions are in the simulation');
+    else if (here) ok(hidden('btnHard') === false,
+       code + ': hard tier still offered, the simulation does not hold its questions');
   });
-  /* Exactly one certification has a bank today. If that ever changes the
+  /* Two certifications have a bank: CCAR-F since the simulation was built,
+     CCDV-F since its set 1 was imported on 2026-11-24. If that changes, the
      count below should be updated deliberately, not silently. */
-  ok(A.EXAM_ORDER.filter(c => A.simAvailable(c)).length === 1,
-     'one certification has a simulation bank');
+  ok(A.EXAM_ORDER.filter(c => A.simAvailable(c)).length === 2,
+     'two certifications have a simulation bank');
 }
 
 console.log(fail ? String.fromCharCode(10) + fail + ' FAILURES'

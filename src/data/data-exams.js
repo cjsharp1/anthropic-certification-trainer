@@ -39,7 +39,10 @@ const EXAMS = {
        scenarios and asks `perBlock` questions on each, as the real CCAR-F
        sitting does. sim.js falls back to exactly these values for an exam
        with no sim block, so they are also the default. */
-    sim: { mode: "scenario", blocks: 4, perBlock: 15, minutes: 120, multi: false },
+    sim: { mode: "scenario", blocks: 4, perBlock: 15, minutes: 120, multi: false,
+           // Its hard drill tier was folded into this bank, so the dashboard
+           // retires the separate hard-mode button (app.js hardModeAvailable).
+           hardInSim: true },
     domains: [
       { id: "d1", num: 1, name: "Agentic Architecture & Orchestration", weight: 27 },
       { id: "d2", num: 2, name: "Tool Design & MCP Integration",        weight: 18 },
