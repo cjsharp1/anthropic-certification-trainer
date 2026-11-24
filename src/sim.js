@@ -885,9 +885,10 @@ function simResult(a) {
   // History only means something once there is a second attempt to compare.
   const prior = S.simAttempts.filter(x => x !== a && x.exam === a.exam);
   if (prior.length) {
-    wrap.appendChild(el('h2', 'labsec', 'Objectives across attempts'));
+    const dm = cfg.mode === 'domain';
+    wrap.appendChild(el('h2', 'labsec', dm ? 'Sub-skills across attempts' : 'Objectives across attempts'));
     wrap.appendChild(el('p', 'muted small',
-      'Every objective you have been tested on, oldest attempt first.'));
+      'Every ' + (dm ? 'sub-skill' : 'objective') + ' you have been tested on, oldest attempt first.'));
     wrap.appendChild(simHistoryTable(a.exam));
   }
 
@@ -916,7 +917,7 @@ function simHistoryTable(exam) {
   const ids = [...new Set(atts.flatMap(a => Object.keys(a.byObj)))].sort();
   const t = el('table', 'statstable simhist');
   const thead = el('thead'); const hr = el('tr');
-  hr.appendChild(el('th', null, 'Objective'));
+  hr.appendChild(el('th', null, simConfig(exam || simExam()).mode === 'domain' ? 'Sub-skill' : 'Objective'));
   atts.forEach((a, i) => {
     const th = el('th', 'simhistcol', '#' + (i + 1));
     th.title = new Date(a.ts).toLocaleString() + ' — ' + a.correct + '/' + a.total;
@@ -1158,14 +1159,20 @@ function renderSim() {
 
   // Open when objectives are already ticked: whoever ticked them came back
   // to drill, and should not have to find the list again.
-  wrap.appendChild(simSection('Drill by test objective',
-    'Practice only the objectives you pick from the ' + simObjectives().length
-    + ' on the score report — if you have sat the exam, the ones yours marked low.',
+  /* CCAR-F's score report lists its objectives, so a candidate can tick the
+     ones it marked low. CCDV-F's reports by domain only; its sub-skills come
+     from the exam guide, and the report points at domains to start from. */
+  wrap.appendChild(simSection(domainMode ? 'Drill by sub-skill' : 'Drill by test objective',
+    domainMode
+      ? 'Practice only the sub-skills you pick from the guide\'s ' + simObjectives().length
+        + ' — if you have sat the exam, start in the domains your report marked low.'
+      : 'Practice only the objectives you pick from the ' + simObjectives().length
+        + ' on the score report — if you have sat the exam, the ones yours marked low.',
     (S.simObjSel || []).length > 0, () => simObjectivePicker()));
 
   if (attempts) {
-    wrap.appendChild(simSection('Objectives across attempts',
-      'Percent correct on each test objective, attempt by attempt.',
+    wrap.appendChild(simSection(domainMode ? 'Sub-skills across attempts' : 'Objectives across attempts',
+      'Percent correct on each ' + (domainMode ? 'sub-skill' : 'test objective') + ', attempt by attempt.',
       false, () => simHistoryTable(examCode)));
   }
 

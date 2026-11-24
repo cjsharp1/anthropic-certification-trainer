@@ -96,9 +96,16 @@ function hardFor(exam) { return QUESTIONS.filter(q => qExams(q).includes(exam) &
    coverage and mastery, where the split is an implementation detail. */
 function allFor(exam) { return QUESTIONS.filter(q => qExams(q).includes(exam)); }
 /* Whether the hard-tier mode is offered. Below five there is not a session's
-   worth; where a simulation exists those questions were folded into its bank
-   and the separate entry point is retired (see renderDash). */
-function hardModeAvailable(exam) { return hardFor(exam).length >= 5 && !simAvailable(exam); }
+   worth; where a simulation's bank absorbed those questions, the separate
+   entry point is retired (see renderDash).
+   That used to follow from having a simulation at all, which was true while
+   CCAR-F was the only bank. CCDV-F's simulation was written fresh and holds
+   none of its hard drill questions, so retiring the mode there would leave
+   sixteen questions with no way in. The exam's sim block now says so. */
+function simAbsorbsHard(exam) {
+  return simAvailable(exam) && !!((EXAMS[exam] || {}).sim || {}).hardInSim;
+}
+function hardModeAvailable(exam) { return hardFor(exam).length >= 5 && !simAbsorbsHard(exam); }
 /* Every question some mode on offer can actually serve. Coverage is measured
    against this rather than allFor(): a denominator holding questions no
    button can reach is a percentage nobody can finish, and it read as the
@@ -2582,8 +2589,8 @@ function renderDash() {
 
   /* The hard tier is still being written out across the four exams, so the
      button appears only where there is something behind it — and not at all
-     where a simulation exists, because those questions have been folded into
-     that bank and the simulation presents them in their proper shape, with a
+     where a simulation absorbed it (CCAR-F), because those questions have been
+     folded into that bank and the simulation presents them in their proper shape, with a
      per-option explanation rather than one shared note. They stay in
      QUESTIONS so coverage and mastery figures do not move; this hides the
      separate entry point, it does not delete anything. */
