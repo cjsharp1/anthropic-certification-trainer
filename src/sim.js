@@ -764,8 +764,8 @@ function renderSim() {
   const ready = scns.filter(s => (counts[s.id] || 0) >= SIM_BLOCK).length;
 
   /* The page is ordered by what a visit is for. Starting a sitting comes
-     first, then your own past attempts; the drill, the tiebreaker guide and
-     the objective history are reference you open when you want them, so
+     first, then your own past attempts; the drill and objective history,
+     then the reflexes and tiebreaker guide, are opened when wanted, so
      each folds to a title and one line. Open all at once they pushed the
      drill a screen and a half below the start buttons. */
   wrap.appendChild(el('p', 'simlede',
@@ -844,10 +844,29 @@ function renderSim() {
     wrap.appendChild(simAttemptList(examCode));
   }
 
-  /* Quick reflexes sit above the drill and the guide, in their own tinted
-     section. They used to be the last row of the tiebreaker list, styled
-     like the principles above them, and readers scrolled past the most
-     immediately usable thing on the page. */
+  /* Two pairs. Your objectives first: the drill and the history it is
+     chosen from sit together, so the weak objectives in the history are
+     beside the list you tick them in. Then the study aids, quick reflexes
+     and the tiebreaker guide, which are both about how to pick between
+     options and used to be split up by the drill. */
+
+  // Open when objectives are already ticked: whoever ticked them came back
+  // to drill, and should not have to find the list again.
+  wrap.appendChild(simSection('Drill by test objective',
+    'Practice only the objectives you pick from the ' + simObjectives().length
+    + ' on the score report — if you have sat the exam, the ones yours marked low.',
+    (S.simObjSel || []).length > 0, () => simObjectivePicker()));
+
+  if (attempts) {
+    wrap.appendChild(simSection('Objectives across attempts',
+      'Percent correct on each test objective, attempt by attempt.',
+      false, () => simHistoryTable(examCode)));
+  }
+
+  /* Quick reflexes lead the study aids in their own tinted section. They
+     used to be the last row of the tiebreaker list, styled like the
+     principles above them, and readers scrolled past the most immediately
+     usable thing on the page. */
   const R = simReflexes();
   if (R) {
     const sec = simSection('Quick reflexes',
@@ -858,24 +877,11 @@ function renderSim() {
     wrap.appendChild(sec);
   }
 
-  // Open when objectives are already ticked: whoever ticked them came back
-  // to drill, and should not have to find the list again.
-  wrap.appendChild(simSection('Drill by test objective',
-    'Practice only the objectives you pick from the ' + simObjectives().length
-    + ' on the score report — if you have sat the exam, the ones yours marked low.',
-    (S.simObjSel || []).length > 0, () => simObjectivePicker()));
-
   if (simTiebreakers().length) {
     wrap.appendChild(simSection('Tiebreakers',
       'When two options both work, these principles pick the best one. '
       + 'Each comes with how to spot it and a worked example.',
       false, () => simTiebreakerGuide(bank)));
-  }
-
-  if (attempts) {
-    wrap.appendChild(simSection('Objectives across attempts',
-      'Percent correct on each test objective, attempt by attempt.',
-      false, () => simHistoryTable(examCode)));
   }
 }
 

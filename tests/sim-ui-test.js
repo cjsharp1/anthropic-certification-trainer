@@ -160,7 +160,9 @@ ok(tbRows.length === O.TIEBREAKERS.length,
 const secList = start.children.filter(n => n.tag === 'details' && n._cls.has('simsec'));
 const rxAt = secList.findIndex(n => n._cls.has('reflex'));
 const tbAt = secList.findIndex(n => /Tiebreakers/.test((n.children[0] && textOf(n.children[0])) || ''));
-ok(rxAt >= 0 && rxAt < tbAt, 'quick reflexes have their own section, above the tiebreakers');
+ok(rxAt >= 0 && tbAt === rxAt + 1, 'quick reflexes have their own section, directly above the tiebreakers');
+const drAt = secList.findIndex(n => /Drill by test objective/.test(textOf(n.children[0])));
+ok(drAt >= 0 && drAt < rxAt, 'the objective drill comes before the study aids');
 const rxRows = find(secList[rxAt], n => n._cls && n._cls.has('simreflexrow'));
 ok(rxRows.length === O.REFLEX_N, 'it lists every symptom and first fix, found ' + rxRows.length);
 ok(!tbRows.some(r => /Quick reflexes/.test(textOf(r))), 'and the guide no longer carries them as a row');
@@ -433,6 +435,15 @@ O.renderSim();
 const s2 = textOf(BY_ID.simStartBody);
 ok(/Your attempts/.test(s2), 'the start screen lists past attempts once there are any');
 ok(/Objectives across attempts/.test(s2), 'and shows the per-objective history table');
+/* The drill and the history it is chosen from sit side by side, ahead of
+   the study aids: the weak objectives should be next to where you tick them. */
+const secs2 = BY_ID.simStartBody.children.filter(n => n.tag === 'details' && n._cls.has('simsec'))
+  .map(n => textOf(n.children[0]));
+const iDrill = secs2.findIndex(t => /Drill by test objective/.test(t));
+const iHist = secs2.findIndex(t => /Objectives across attempts/.test(t));
+const iRx = secs2.findIndex(t => /Quick reflexes/.test(t));
+ok(iHist === iDrill + 1 && iRx === iHist + 1,
+   'the objective history sits right after the drill, before the study aids');
 
 H('14. A past attempt can be reopened and its misses reviewed');
 /* The results screen used to read the missed list from the live sitting, so
