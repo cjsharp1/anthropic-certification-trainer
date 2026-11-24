@@ -404,7 +404,7 @@ Each person's progress lives in their own browser's localStorage, so sending a
 colleague a newer build never disturbs what they have already answered. They can
 replace their copy whenever you ship an update.
 
-`node tests/build-test.js` boots the built file and checks it carries all 764
+`node tests/build-test.js` boots the built file and checks it carries all 823
 questions, 27 notes and 19 labs, and that every page still renders — run it
 after `tools/build.js` if you are about to send the file to someone.
 
@@ -456,7 +456,7 @@ src/                   the app — what app/index.html loads and build.js inline
   report.js            question id and prefilled report link under explanations
   data/
     data-exams.js      exam blueprints — domains and weights
-    data-questions*.js question bank (9 drill + 4 held-out + 4 hard)
+    data-questions*.js question bank (10 drill + 4 held-out + 4 hard)
     data-sim-*.js      Exam Simulation banks + objectives (CCAR-F; -dv for CCDV-F)
     data-tiebreakers.js tiebreaker guide (start screen + docs/TIEBREAKERS.md)
     data-labs.js       hands-on build projects

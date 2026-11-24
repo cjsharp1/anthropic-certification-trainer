@@ -3,11 +3,13 @@ const P = require('./paths');
 const dir = process.argv[2] || P.ROOT;
 const ctx={console, structuredClone};
 vm.createContext(ctx);
-const files=['data-exams.js','data-questions.js','data-questions-2.js','data-questions-3.js','data-questions-4.js','data-questions-5.js','data-questions-6.js','data-questions-7.js','data-questions-8.js','data-questions-9.js','data-questions-held.js','data-questions-held-ao.js','data-questions-held-dv.js','data-questions-held-pr.js','data-questions-hard-ao.js','data-questions-hard-ar.js','data-questions-hard-dv.js','data-questions-hard-pr.js','data-labs.js','data-starters.js','data-notes.js'];
+const files=['data-exams.js','data-questions.js','data-questions-2.js','data-questions-3.js','data-questions-4.js','data-questions-5.js','data-questions-6.js','data-questions-7.js','data-questions-8.js','data-questions-9.js','data-questions-10.js','data-questions-held.js','data-questions-held-ao.js','data-questions-held-dv.js','data-questions-held-pr.js','data-questions-hard-ao.js','data-questions-hard-ar.js','data-questions-hard-dv.js','data-questions-hard-pr.js','data-labs.js','data-starters.js','data-notes.js',
+  // The sub-skill list, so a drill question's `sk` can be checked against it.
+  'data-sim-objectives.js','data-sim-objectives-dv.js'];
 const src=files.map(f=>fs.readFileSync(P.resolve(f),'utf8')).join('\n;\n')
-  + '\n;globalThis.__out={QUESTIONS,EXAMS,EXAM_ORDER,LABS,NOTES,CARDS,STARTERS,NO_STARTER};';
+  + '\n;globalThis.__out={QUESTIONS,EXAMS,EXAM_ORDER,LABS,NOTES,CARDS,STARTERS,NO_STARTER,SIM_OBJECTIVES};';
 vm.runInContext(src, ctx, {filename:'bundle.js'});
-const {QUESTIONS, EXAMS, EXAM_ORDER, LABS, NOTES, CARDS, STARTERS, NO_STARTER}=ctx.__out;
+const {QUESTIONS, EXAMS, EXAM_ORDER, LABS, NOTES, CARDS, STARTERS, NO_STARTER, SIM_OBJECTIVES}=ctx.__out;
 console.log('Questions:', QUESTIONS.length, '| Labs:', LABS.length,
             '| Notes:', NOTES.length, '| Cards:', CARDS.length);
 let err=[], warn=[]; const ids=new Set();
@@ -30,6 +32,23 @@ for(const q of QUESTIONS){
   if(!q.multi&&a.length!==1) err.push(q.id+': single with '+a.length+' answers');
   if(!q.why||q.why.length<40) err.push(q.id+': thin explanation');
   if(!q.kind) err.push(q.id+': missing kind');
+}
+
+/* Sub-skill tags. `sk` is optional, and names one of an exam's sub-skills
+   (the CCDV-F ones in data-sim-objectives-dv.js). A tag that names no
+   sub-skill, or one in a different domain from the question, would make a
+   later per-sub-skill coverage report quietly wrong rather than fail. */
+{
+  const skills = Object.fromEntries((SIM_OBJECTIVES || []).filter(o => o.domain).map(o => [o.id, o]));
+  for (const q of QUESTIONS) {
+    if (q.sk === undefined) continue;
+    const o = skills[q.sk];
+    if (!o) { err.push(q.id + ': sk ' + q.sk + ' is not a known sub-skill'); continue; }
+    const exams = Array.isArray(q.exam) ? q.exam : [q.exam];
+    if (!exams.includes(o.exam)) { err.push(q.id + ': sk ' + q.sk + ' belongs to ' + o.exam + ', not this question\'s exam'); continue; }
+    const dom = exams[0] === o.exam ? q.d : (q.also && q.also[o.exam]);
+    if (dom !== o.domain) err.push(q.id + ': sk ' + q.sk + ' is in domain ' + o.domain + ', but the question is in ' + dom);
+  }
 }
 for(const l of LABS){
   for(const e of l.exams){
@@ -263,6 +282,9 @@ if (warn.length) {
   console.log('');
 }
 console.log(err.length?'ERRORS:\n'+err.join('\n'):'All integrity checks passed');
+/* Fail the process on an error. This printed errors but always exited 0, so
+   `npm run check`, which chains validate with &&, carried on regardless. */
+if (err.length) process.exitCode = 1;
 console.log('\nPer-exam pool (domain:count):');
 for(const c of EXAM_ORDER){
   const pool=QUESTIONS.filter(q=>(Array.isArray(q.exam)?q.exam:[q.exam]).includes(c));
