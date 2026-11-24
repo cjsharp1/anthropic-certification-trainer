@@ -1,10 +1,15 @@
-/* CCAR-F Exam Simulation — sittings, drills, scoring and results.
+/* Exam Simulation — sittings, drills, scoring and results.
  *
  * A separate module from the fact-recall trainer in app.js, because it is a
  * different kind of exam. The recall bank asks what a thing is; these
- * questions describe a team trying to do something, offer four approaches of
- * which often two would work, and ask for the best one. They come from a real
- * sitting: 4 of the 6 documented scenarios, 15 questions each, 120 minutes.
+ * questions describe a team trying to do something, offer approaches of
+ * which often two would work, and ask for the best one.
+ *
+ * Built for CCAR-F, whose sitting draws 4 of 6 scenarios with 15 questions
+ * each. Each exam's paper shape now comes from its `sim` block in
+ * data-exams.js (see simConfig): CCAR-F keeps the scenario blocks, and
+ * CCDV-F, which names no scenarios, is drawn by domain quota and adds
+ * multiple-response items and code exhibits.
  *
  * Nothing here touches QUESTIONS, S.history or S.sessions. Simulation results
  * live in S.simAttempts and the two pools never mix — drilling a domain can't
@@ -24,10 +29,99 @@
  * (SIM.exam), so changing the picker mid-paper cannot rescore it, and a
  * finished attempt is read back through its own a.exam. */
 function simExam() { return (SIM && SIM.exam) || S.exam; }
-const SIM_BLOCK = 15;          // questions per scenario in the real sitting
-const SIM_BLOCKS = 4;          // scenarios drawn from the bank of 6
-const SIM_TARGET = SIM_BLOCK * SIM_BLOCKS;
-const SIM_MINUTES = 120;
+
+/* How an exam's paper is built, from its `sim` block in data-exams.js.
+ * These used to be four constants (15 per block, 4 blocks, 60, 120 minutes)
+ * because CCAR-F was the only bank. The defaults are still CCAR-F's, so an
+ * exam with no sim block gets exactly the paper CCAR-F always had.
+ * `target` is derived rather than stored: a scenario paper is blocks times
+ * perBlock, a domain paper is its item count. */
+const SIM_DEFAULT = { mode: 'scenario', blocks: 4, perBlock: 15, minutes: 120, multi: false };
+function simConfig(exam) {
+  const own = (EXAMS[exam || simExam()] || {}).sim || {};
+  const c = Object.assign({}, SIM_DEFAULT, own);
+  c.target = c.mode === 'domain' ? c.items : c.blocks * c.perBlock;
+  return c;
+}
+
+/* ---------- answers ----------
+ * A single-select question stores `correct` as one key and an answer as one
+ * key. A multiple-response question stores both as arrays, answers sorted.
+ * Attempts saved before multi-select existed hold plain strings, and are
+ * never migrated, so everything that reads an answer goes through these. */
+function simIsMulti(q) { return q.format === 'multi_select' || Array.isArray(q.correct); }
+function simCorrectKeys(q) { return Array.isArray(q.correct) ? q.correct : [q.correct]; }
+function simPickedKeys(picked) {
+  return picked == null ? [] : Array.isArray(picked) ? picked : [picked];
+}
+/* How many a question asks for. `select` is stated on CCDV-F items; the
+   number of correct keys answers for any that lack it. */
+function simSelectCount(q) { return q.select || simCorrectKeys(q).length; }
+/* No partial credit: every correct key and nothing else, as the recall quiz
+   scores multiple-response items in app.js and as the real exams describe
+   them. Two of three right is wrong, and so is one of two. */
+function simIsCorrect(q, picked) {
+  const want = simCorrectKeys(q), got = simPickedKeys(picked);
+  return got.length === want.length && want.every(k => got.includes(k));
+}
+/* Where an answer stands: 'none', 'partial' or 'full'. A multi-select holding
+   fewer picks than it asks for is partial, and scores zero exactly as an
+   unanswered one does, so the review screen and the submit warning must not
+   count it as answered: "53 answered" with one pick on a select-two item
+   tells the candidate there is nothing left to do. */
+function simAnswerState(q, picked) {
+  const n = simPickedKeys(picked).length;
+  if (!n) return 'none';
+  return simIsMulti(q) && n < simSelectCount(q) ? 'partial' : 'full';
+}
+/* Tallies for the review screen and the submit warning, from one place. */
+function simPaperCounts() {
+  const c = { full: 0, partial: 0, none: 0 };
+  SIM.list.forEach(it => { c[simAnswerState(it.q, SIM.answers[it.q.id])]++; });
+  return c;
+}
+/* Letters as a sentence would list them: "B", "B and D", "A, B and D". */
+function simJoinLetters(ls) {
+  if (ls.length < 2) return ls.join('');
+  return ls.slice(0, -1).join(', ') + ' and ' + ls[ls.length - 1];
+}
+function simSelectWord(n) {
+  return (typeof SELECT_WORD !== 'undefined' && SELECT_WORD[n]) || String(n);
+}
+
+/* Each domain's share of an n-item paper: weight times n, rounded by largest
+ * remainder so the shares sum to n exactly. Plain rounding of CCDV-F's eight
+ * weights at 53 items gives 52, and rounding up gives 56; the blueprint's
+ * table is the largest-remainder result. Ties on remainder go to the heavier
+ * domain, so the answer never depends on the order domains are listed in. */
+function simDomainQuotas(exam, n) {
+  const doms = (EXAMS[exam] || {}).domains || [];
+  const total = doms.reduce((a, d) => a + d.weight, 0) || 1;
+  const rows = doms.map(d => ({ id: d.id, w: d.weight, x: d.weight / total * n }));
+  const out = {};
+  let given = 0;
+  rows.forEach(r => { out[r.id] = Math.floor(r.x); given += out[r.id]; });
+  rows.slice()
+    .sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x)) || b.w - a.w)
+    .slice(0, Math.max(0, n - given))
+    .forEach(r => { out[r.id]++; });
+  return out;
+}
+/* The page subtitle, which was static markup naming CCAR-F's scenario
+   blocks and so described the wrong exam once a second bank existed. */
+function simSetSubtitle(exam) {
+  const sub = $('#simSub');
+  if (!sub) return;
+  sub.textContent = simConfig(exam).mode === 'domain'
+    ? 'Weighted by domain, as the real ' + exam + ' paper is built'
+    : 'Scenario blocks, as the real ' + exam + ' sitting is built';
+}
+/* A question's domain for quota purposes: its first listed one. */
+function simDomainOf(q) { return (q.domains || [])[0] || null; }
+function simDomainName(id, exam) {
+  const d = ((EXAMS[exam || simExam()] || {}).domains || []).find(x => x.id === id);
+  return d ? d.name : id;
+}
 
 /* ---------- bank helpers ---------- */
 function simBank(exam) {
@@ -38,7 +132,15 @@ function simBank(exam) {
      certification must never appear in this one's paper. */
   return exam ? all.filter(q => q.exam === exam) : all;
 }
-function simObjectives() { return typeof SIM_OBJECTIVES === 'undefined' ? [] : SIM_OBJECTIVES; }
+/* The selected exam's objectives, for the drill picker and the history
+   table. Lookups by id search every exam's list: ids do not collide
+   (O01-O37 against DV-1.1-DV-8.3), and a past attempt reopened from the
+   results screen should still name its objectives whichever exam is picked. */
+function simAllObjectives() { return typeof SIM_OBJECTIVES === 'undefined' ? [] : SIM_OBJECTIVES; }
+function simObjectives(exam) {
+  const ex = exam || simExam();
+  return simAllObjectives().filter(o => o.exam === ex);
+}
 function simTiebreakers() { return typeof TIEBREAKERS === 'undefined' ? [] : TIEBREAKERS; }
 /** The guide entry whose tags include this question's tiebreaker, if any. */
 function simTiebreakerFor(name) { return simTiebreakers().find(t => t.tags.includes(name)) || null; }
@@ -47,7 +149,7 @@ function simScenarioName(id, exam) {
   const s = (ex.scenarios || []).find(x => x.id === id);
   return s ? s.t : id;
 }
-function simObjective(id) { return simObjectives().find(o => o.id === id) || null; }
+function simObjective(id) { return simAllObjectives().find(o => o.id === id) || null; }
 function simQuestion(id) { return simBank().find(q => q.id === id) || null; }
 /* The context paragraph is carried on every question of a scenario; any one
    of them answers for the block. */
@@ -110,8 +212,9 @@ function buildSitting(opts) {
     || (q.objectives || []).some(x => o.objectives.includes(x)));
   if (!bank.length) return null;
 
-  const target = o.target || SIM_TARGET;
-  const perBlock = o.perBlock || SIM_BLOCK;
+  const cfg = simConfig(exam);
+  const target = o.target || cfg.target;
+  const perBlock = o.perBlock || cfg.perBlock;
   const allScn = ((EXAMS[exam] || {}).scenarios || []).map(s => s.id);
   const withQs = allScn.filter(id => bank.some(q => q.scn === id));
 
@@ -134,9 +237,9 @@ function buildSitting(opts) {
   const lap = Math.min(...bank.map(q => seen[q.id] || 0));
   const fresh = id => Math.min(perBlock,
     bank.filter(q => q.scn === id && (seen[q.id] || 0) === lap).length);
-  const chosen = simShuffle(withQs)
+  const chosen = cfg.mode === 'domain' ? [] : simShuffle(withQs)
     .sort((a, b) => fresh(b) - fresh(a))
-    .slice(0, o.blocks || SIM_BLOCKS);
+    .slice(0, o.blocks || cfg.blocks);
 
   /* Some questions teach the same lesson as another, and many of those pairs
      share a scenario, so one block could hold both and the first would give
@@ -166,12 +269,33 @@ function buildSitting(opts) {
 
   const used = new Set();
   const blocks = [];
-  let short = 0;
+  if (cfg.mode === 'domain') {
+    /* A domain paper is one block with no scenario, so the lookups that
+       read SIM.blocks[it.block] keep working unchanged. Each domain gives
+       its blueprint share, least-seen first and one per family, and the
+       block is then shuffled: the real exam does not group by domain, and
+       grouping would tell the candidate each item's domain.
+       An objective drill is the exception. It asks for a handful of
+       objectives, so most domains have nothing to give, and a quota would
+       push nearly the whole drill into the "additional questions" block. */
+    let take;
+    if (o.objectives && o.objectives.length) {
+      take = pick(simLeastSeen(bank, seen), target);
+    } else {
+      const quotas = simDomainQuotas(exam, target);
+      take = [];
+      Object.keys(quotas).forEach(d => {
+        const pool = simLeastSeen(bank.filter(q => simDomainOf(q) === d), seen);
+        take.push(...pick(pool, quotas[d]));
+      });
+    }
+    take.forEach(q => used.add(q.id));
+    blocks.push({ scn: null, context: null, questions: simShuffle(take), filler: false });
+  }
   chosen.forEach(scn => {
     const pool = simLeastSeen(bank.filter(q => q.scn === scn), seen);
     const take = pick(pool, perBlock);
     take.forEach(q => used.add(q.id));
-    if (take.length < (o.perBlock || SIM_BLOCK)) short += (o.perBlock || SIM_BLOCK) - take.length;
     blocks.push({ scn, context: simContext(scn, exam), questions: take, filler: false });
   });
 
@@ -206,7 +330,7 @@ function buildSitting(opts) {
     target,
     // Scale the clock when the paper is short, so the per-question pace
     // matches a real sitting rather than being generous.
-    minutes: Math.max(1, Math.round((o.minutes || SIM_MINUTES) * (total / target)))
+    minutes: Math.max(1, Math.round((o.minutes || cfg.minutes) * (total / target)))
   };
 }
 
@@ -221,7 +345,7 @@ function simStart(mode, opts) {
   SIM = Object.assign(sit, {
     mode,                       // 'exam' | 'practice'
     i: 0,
-    answers: {},                // qid -> option key
+    answers: {},                // qid -> option key, or sorted keys (multi-select)
     flags: {},                  // qid -> true
     revealed: {},               // qid -> true (practice: feedback shown)
     started: Date.now(),
@@ -266,17 +390,25 @@ function simRender() {
      what system they are designing. It opens expanded on the first question
      of a block and collapses to the scenario name after that. */
   const firstOfBlock = SIM.i === 0 || SIM.list[SIM.i - 1].block !== item.block;
+  const cfg = simConfig(SIM.exam);
+  simSetSubtitle(SIM.exam);
   const head = $('#simScenario');
   head.innerHTML = '';
   head.hidden = false;
   if (block.filler) {
     head.appendChild(el('div', 'simscnname', 'Additional questions'));
     if (firstOfBlock) {
-      head.appendChild(el('p', 'muted small',
-        'The bank does not yet hold ' + SIM_BLOCK + ' questions for every scenario. '
-        + 'These ' + block.questions.length + ' were added to bring the paper up to '
-        + SIM.target + ' and are not part of a scenario block.'));
+      head.appendChild(el('p', 'muted small', cfg.mode === 'domain'
+        ? 'The bank does not yet hold enough questions in every domain. These '
+          + block.questions.length + ' were added from other domains to bring the paper up to '
+          + SIM.target + '.'
+        : 'The bank does not yet hold ' + cfg.perBlock + ' questions for every scenario. '
+          + 'These ' + block.questions.length + ' were added to bring the paper up to '
+          + SIM.target + ' and are not part of a scenario block.'));
     }
+  } else if (!block.scn) {
+    // A domain paper: no scenario to brief, so no heading at all.
+    head.hidden = true;
   } else if (block.context) {
     const det = el('details', 'simscnbox');
     det.open = firstOfBlock;
@@ -290,17 +422,36 @@ function simRender() {
 
   const n = block.questions.indexOf(q) + 1;
   $('#simProg').textContent = 'Question ' + (SIM.i + 1) + ' of ' + SIM.total;
+  // A domain paper's only label is "Question n of N", which simProg carries.
+  $('#simBlockLabel').hidden = !block.filler && !block.scn;
   $('#simBlockLabel').textContent = block.filler
     ? 'Additional'
-    : simScenarioName(block.scn) + ' · ' + n + ' of ' + block.questions.length;
+    : block.scn ? simScenarioName(block.scn) + ' · ' + n + ' of ' + block.questions.length : '';
 
   // Stems are plain prose from a real sitting, numbers and all. textContent,
   // so nothing is reinterpreted as markup or reflowed into a list.
   $('#simStem').textContent = q.stem;
 
+  const ex = $('#simExhibit');
+  ex.innerHTML = '';
+  ex.hidden = !q.exhibit;
+  if (q.exhibit) ex.appendChild(simExhibit(q.exhibit));
+
+  /* How many to select, as the real exam states it on every item. Shown
+     only for an exam whose paper mixes the two kinds: on an all
+     single-select paper such as CCAR-F's it would be noise. */
+  const multi = simIsMulti(q);
+  const need = simSelectCount(q);
+  const hint = $('#simSelect');
+  hint.textContent = multi ? 'Select ' + simSelectWord(need) : cfg.multi ? 'Select ONE' : '';
+  hint.hidden = !hint.textContent;
+
   const wrap = $('#simOpts');
   wrap.innerHTML = '';
+  wrap.setAttribute('role', multi ? 'group' : 'radiogroup');
   const picked = SIM.answers[q.id];
+  const chosen = simPickedKeys(picked);
+  const want = simCorrectKeys(q);
   const revealed = SIM.mode === 'practice' && SIM.revealed[q.id];
   /* The letter shown is the option's POSITION on screen, not its stored key.
      Order is shuffled per attempt, so printing the key gives a list reading
@@ -312,16 +463,16 @@ function simRender() {
     const opt = q.options.find(o => o.key === key);
     const b = el('button', 'opt simopt');
     b.type = 'button';
-    b.setAttribute('role', 'radio');
-    b.setAttribute('aria-checked', picked === key ? 'true' : 'false');
+    b.setAttribute('role', multi ? 'checkbox' : 'radio');
+    b.setAttribute('aria-checked', chosen.includes(key) ? 'true' : 'false');
     const mark = el('span', 'optkey', String.fromCharCode(65 + pos));
     const txt = el('span', 'opttext', opt.text);
     b.append(mark, txt);
-    if (picked === key) b.classList.add('sel');
+    if (chosen.includes(key)) b.classList.add('sel');
     if (revealed) {
       b.disabled = true;
-      if (key === q.correct) b.classList.add('right');
-      else if (picked === key) b.classList.add('wrong');
+      if (want.includes(key)) b.classList.add('right');
+      else if (chosen.includes(key)) b.classList.add('wrong');
     }
     b.onclick = () => simPick(key);
     // Right-click to rule an option out, as the real exam allows. Keyed by
@@ -331,6 +482,14 @@ function simRender() {
     }
     wrap.appendChild(b);
   });
+
+  /* Practice grades a multi-select once the reader has picked as many as it
+     asks for. Check grades it sooner, for a reader who wants to see where an
+     incomplete answer stands; it counts as wrong, as on the exam. */
+  const check = $('#simCheck');
+  check.hidden = !(multi && SIM.mode === 'practice' && !revealed);
+  check.disabled = !chosen.length;
+  check.onclick = () => simReveal(q);
 
   // Feedback: immediately in practice, never in exam mode until submission.
   const fb = $('#simFeedback');
@@ -350,14 +509,54 @@ function simPick(key) {
   const item = SIM.list[SIM.i];
   const q = item.q;
   if (SIM.mode === 'practice' && SIM.revealed[q.id]) return;   // already graded
-  SIM.answers[q.id] = key;
-  if (SIM.mode === 'practice') {
-    SIM.revealed[q.id] = true;
-    // The answer is on screen now; elimination marks have served their
-    // purpose and would only compete with the right/wrong colouring.
-    if (typeof clearStrikes === 'function') clearStrikes(q.id);
+  if (simIsMulti(q)) {
+    /* A click toggles membership. Once the reader holds as many as the
+       question asks for, a further option does nothing until one is
+       cleared: silently swapping out an earlier pick would change an answer
+       the reader did not touch. An emptied answer is removed rather than
+       stored as [], so "answered" keeps meaning at least one pick. */
+    const cur = simPickedKeys(SIM.answers[q.id]);
+    let next;
+    if (cur.includes(key)) next = cur.filter(k => k !== key);
+    else if (cur.length >= simSelectCount(q)) return;
+    else next = cur.concat(key);
+    next.sort();
+    if (next.length) SIM.answers[q.id] = next; else delete SIM.answers[q.id];
+    if (SIM.mode === 'practice' && next.length === simSelectCount(q)) { simReveal(q); return; }
+    simRender();
+    return;
   }
+  SIM.answers[q.id] = key;
+  if (SIM.mode === 'practice') { simReveal(q); return; }
   simRender();
+}
+
+function simReveal(q) {
+  SIM.revealed[q.id] = true;
+  // The answer is on screen now; elimination marks have served their
+  // purpose and would only compete with the right/wrong colouring.
+  if (typeof clearStrikes === 'function') clearStrikes(q.id);
+  simRender();
+}
+
+/* A code, trace or config exhibit, as a titled figure. The body goes in with
+   textContent, never innerHTML, for the same reason the stem does: exhibits
+   are full of angle brackets and quotes, and an HTML snippet in one would
+   otherwise be parsed, or run. No highlighter, since the app ships no
+   dependencies; a monospace face and a horizontal scroll are enough. */
+function simExhibit(ex) {
+  const fig = el('figure', 'simexhibit');
+  const cap = el('figcaption', 'simexhibitcap');
+  cap.appendChild(el('span', 'simexhibitlabel', 'Exhibit'));
+  if (ex.title) cap.appendChild(el('span', 'simexhibittitle', ex.title));
+  if (ex.lang && ex.lang !== 'text') cap.appendChild(el('span', 'simexhibitlang', ex.lang));
+  fig.appendChild(cap);
+  const pre = el('pre', 'simexhibitbody');
+  const code = el('code');
+  code.textContent = ex.body || '';
+  pre.appendChild(code);
+  fig.appendChild(pre);
+  return fig;
 }
 
 /* The feedback panel: what you picked and why it is right or wrong, what the
@@ -371,14 +570,21 @@ function simPick(key) {
    letters still agree within a card. */
 function simFeedback(q, picked, order) {
   const box = el('div', 'simfb');
-  const ok = picked === q.correct;
+  const ok = simIsCorrect(q, picked);
+  const multi = simIsMulti(q);
+  const want = simCorrectKeys(q);
+  const got = simPickedKeys(picked);
   const shown = (order && order.length ? order : q.options.map(o => o.key));
   const letterOf = k => {
     const i = shown.indexOf(k);
     return i < 0 ? k : String.fromCharCode(65 + i);
   };
+  // Correct options in the order the reader saw them, so "B and D" reads
+  // in screen order whatever the stored keys are.
+  const wantShown = shown.filter(k => want.includes(k));
   const head = el('div', 'simfbhead ' + (ok ? 'good' : 'bad'));
   head.textContent = ok ? 'Correct'
+    : multi ? 'Not the best answers — ' + simJoinLetters(wantShown.map(letterOf)) + ' are'
     : 'Not the best answer — ' + letterOf(q.correct) + ' is';
   box.appendChild(head);
 
@@ -395,10 +601,20 @@ function simFeedback(q, picked, order) {
     return d;
   };
 
-  if (!ok && picked) box.appendChild(line(picked, 'Why your answer falls short', 'bad'));
-  box.appendChild(line(q.correct, ok ? 'Why this is right' : 'Why this is the best answer', 'good'));
+  /* Every wrong pick, then every correct option. A multi-select can hold
+     several of each, so nothing here assumes one picked and one right. */
+  shown.filter(k => got.includes(k) && !want.includes(k))
+    .forEach(k => box.appendChild(line(k, 'Why your answer falls short', 'bad')));
+  if (multi && !ok && got.length && got.length < want.length) {
+    box.appendChild(el('p', 'muted small', 'This asks for ' + simSelectWord(want.length).toLowerCase()
+      + ' answers and you gave ' + got.length + '. There is no partial credit.'));
+  }
+  wantShown.forEach(k => box.appendChild(line(k,
+    ok ? 'Why this is right'
+      : multi ? (got.includes(k) ? 'You picked this — one of the best answers' : 'Why this is one of the best answers')
+      : 'Why this is the best answer', 'good')));
 
-  const others = shown.filter(k => k !== q.correct && k !== picked);
+  const others = shown.filter(k => !want.includes(k) && !got.includes(k));
   if (others.length) {
     const det = el('details', 'simfbmore');
     det.appendChild(el('summary', null, 'The other ' + (others.length === 1 ? 'option' : 'options')));
@@ -442,9 +658,14 @@ function simFeedback(q, picked, order) {
   }
 
   const objs = (q.objectives || []).map(id => id).join(', ');
-  if (objs) box.appendChild(el('div', 'muted small simobj', 'Test objective ' + objs));
+  // CCAR-F's score report calls these test objectives; CCDV-F's are sub-skills.
+  if (objs) box.appendChild(el('div', 'muted small simobj',
+    (simConfig(q.exam || 'CCAR-F').mode === 'domain' ? 'Sub-skill ' : 'Test objective ') + objs));
   if (typeof questionRef === 'function') {
-    box.appendChild(questionRef(q.id, q.stem, q.exam || 'CCAR-F', 'Exam Simulation (CCAR-F)'));
+    // The location label must be an exact option in the report form's
+    // dropdown (.github/ISSUE_TEMPLATE/wrong-answer.yml), one per exam.
+    const ex = q.exam || 'CCAR-F';
+    box.appendChild(questionRef(q.id, q.stem, ex, 'Exam Simulation (' + ex + ')'));
   }
   return box;
 }
@@ -465,7 +686,8 @@ function simToggleFlag() {
 
 function simReview() {
   SIM.reviewing = true;
-  const answered = SIM.list.filter(it => SIM.answers[it.q.id]).length;
+  const counts = simPaperCounts();
+  const answered = counts.full;
   const flagged = SIM.list.filter(it => SIM.flags[it.q.id]).length;
   const wrap = $('#simReviewBody'); wrap.innerHTML = '';
 
@@ -476,22 +698,39 @@ function simReview() {
     c.appendChild(el('div', 'muted small', label));
     return c;
   };
+  stats.append(stat(answered, 'answered', 'good'));
+  // Shown only when it can happen: a CCAR-F paper has no multi-select items.
+  if (counts.partial) stats.append(stat(counts.partial, 'incomplete', 'part'));
   stats.append(
-    stat(answered, 'answered', 'good'),
-    stat(SIM.total - answered, 'unanswered', SIM.total - answered ? 'bad' : ''),
+    stat(counts.none, 'unanswered', counts.none ? 'bad' : ''),
     stat(flagged, 'flagged for review', flagged ? 'warn' : ''));
   wrap.appendChild(stats);
   wrap.appendChild(el('p', 'muted small',
     'Click any question to go back to it. Unanswered questions score zero — '
-    + 'there is no penalty for guessing.'));
+    + 'there is no penalty for guessing.'
+    + (counts.partial ? ' Incomplete ones, shown with a dashed outline, hold fewer '
+      + 'picks than they ask for and also score zero.' : '')));
 
   SIM.blocks.forEach((b, bi) => {
-    wrap.appendChild(el('h3', 'simrevscn', b.filler ? 'Additional questions' : simScenarioName(b.scn)));
+    // A domain paper's single block has no scenario to head it.
+    if (b.filler || b.scn) {
+      wrap.appendChild(el('h3', 'simrevscn', b.filler ? 'Additional questions' : simScenarioName(b.scn)));
+    }
     const grid = el('div', 'revgrid');
     SIM.list.forEach((it, i) => {
       if (it.block !== bi) return;
       const btn = el('button', 'sq', String(i + 1));
-      if (SIM.answers[it.q.id]) btn.classList.add('done');
+      const state = simAnswerState(it.q, SIM.answers[it.q.id]);
+      if (state === 'full') btn.classList.add('done');
+      /* Incomplete gets its own mark, never the filled "done" one: at a
+         glance the grid must not say a question is finished when it scores
+         zero as it stands. The label says it for a screen reader too. */
+      if (state === 'partial') {
+        btn.classList.add('part');
+        btn.setAttribute('aria-label', 'Question ' + (i + 1) + ', incomplete: '
+          + simPickedKeys(SIM.answers[it.q.id]).length + ' of ' + simSelectCount(it.q) + ' picked');
+        btn.title = 'Incomplete';
+      }
       if (SIM.flags[it.q.id]) btn.classList.add('flag');
       btn.onclick = () => { SIM.reviewing = false; SIM.i = i; simRender(); go('sim'); };
       grid.appendChild(btn);
@@ -516,7 +755,7 @@ function simSubmit(auto) {
   SIM.list.forEach(it => {
     const q = it.q;
     const picked = SIM.answers[q.id] || null;
-    const ok = picked === q.correct;
+    const ok = simIsCorrect(q, picked);
     if (ok) correct++;
     // The shuffled order is kept so the missed-question review can letter the
     // options as they were seen. Attempts saved before this lack it, and
@@ -593,33 +832,55 @@ function simResult(a) {
     w.textContent = 'Time expired — the paper was submitted automatically.';
     wrap.appendChild(w);
   }
+  const cfg = simConfig(a.exam);
   if (a.filled) {
     wrap.appendChild(el('p', 'muted small',
       a.filled + ' question' + (a.filled === 1 ? ' was' : 's were') + ' added from other '
-      + 'scenarios to reach ' + a.target + ', because the bank does not yet hold '
-      + SIM_BLOCK + ' for every scenario.'));
+      + (cfg.mode === 'domain'
+        ? 'domains to reach ' + a.target + ', because the bank does not yet hold '
+          + 'enough questions in every domain.'
+        : 'scenarios to reach ' + a.target + ', because the bank does not yet hold '
+          + cfg.perBlock + ' for every scenario.')));
   }
 
-  // The breakdown the real score report gives, in the same shape.
-  wrap.appendChild(el('h2', 'labsec', 'Percent correct by test objective'));
-  wrap.appendChild(el('p', 'muted small',
-    'The real score report breaks your result down this way. Each objective '
-    + 'covers only a handful of items, so treat a single attempt as directional.'));
+  /* The breakdown the real score report gives comes first, in its shape.
+     CCAR-F's report is by test objective; CCDV-F's is by domain, with
+     sub-skills as the finer grain beneath it. */
   const objRows = Object.keys(a.byObj).sort().map(id => {
     const o = simObjective(id);
-    return { tag: id, name: o ? o.text : id, title: o ? o.text : '', n: a.byObj[id].n, ok: a.byObj[id].ok };
+    const label = o ? (o.name || o.text) : id;
+    return { tag: id, name: label, title: o ? o.text : '', n: a.byObj[id].n, ok: a.byObj[id].ok };
   });
-  wrap.appendChild(objRows.length ? simBreakdown(objRows)
-    : el('p', 'muted small', 'None of the questions in this sitting carry an objective tag.'));
-
-  wrap.appendChild(el('h2', 'labsec', 'By domain'));
-  wrap.appendChild(simBreakdown(((EXAMS[a.exam] || {}).domains || [])
+  const objTable = () => objRows.length ? simBreakdown(objRows)
+    : el('p', 'muted small', 'None of the questions in this sitting carry an objective tag.');
+  const domTable = () => simBreakdown(((EXAMS[a.exam] || {}).domains || [])
     .filter(d => a.byDom[d.id])
-    .map(d => ({ tag: 'D' + d.num, name: d.name, n: a.byDom[d.id].n, ok: a.byDom[d.id].ok }))));
+    .map(d => ({ tag: 'D' + d.num, name: d.name, n: a.byDom[d.id].n, ok: a.byDom[d.id].ok })));
 
-  wrap.appendChild(el('h2', 'labsec', 'By scenario'));
-  wrap.appendChild(simBreakdown(Object.keys(a.byScn)
-    .map(id => ({ name: simScenarioName(id, a.exam), n: a.byScn[id].n, ok: a.byScn[id].ok }))));
+  if (cfg.mode === 'domain') {
+    wrap.appendChild(el('h2', 'labsec', 'Percent correct by domain'));
+    wrap.appendChild(el('p', 'muted small',
+      'The real score report breaks your result down this way. The lighter '
+      + 'domains cover only one or two items, so treat a single attempt as directional.'));
+    wrap.appendChild(domTable());
+    wrap.appendChild(el('h2', 'labsec', 'By sub-skill'));
+    wrap.appendChild(objTable());
+  } else {
+    wrap.appendChild(el('h2', 'labsec', 'Percent correct by test objective'));
+    wrap.appendChild(el('p', 'muted small',
+      'The real score report breaks your result down this way. Each objective '
+      + 'covers only a handful of items, so treat a single attempt as directional.'));
+    wrap.appendChild(objTable());
+    wrap.appendChild(el('h2', 'labsec', 'By domain'));
+    wrap.appendChild(domTable());
+  }
+
+  // A domain paper has no scenarios, and an empty table says nothing.
+  if (Object.keys(a.byScn || {}).length) {
+    wrap.appendChild(el('h2', 'labsec', 'By scenario'));
+    wrap.appendChild(simBreakdown(Object.keys(a.byScn)
+      .map(id => ({ name: simScenarioName(id, a.exam), n: a.byScn[id].n, ok: a.byScn[id].ok }))));
+  }
 
   // History only means something once there is a second attempt to compare.
   const prior = S.simAttempts.filter(x => x !== a && x.exam === a.exam);
@@ -670,7 +931,7 @@ function simHistoryTable(exam) {
     const o = simObjective(id);
     const name = el('td');
     name.appendChild(el('span', 'dnum', id));
-    name.appendChild(el('span', null, ' ' + (o ? o.text : id)));
+    name.appendChild(el('span', null, ' ' + (o ? (o.name || o.text) : id)));
     tr.appendChild(name);
     const seq = [];
     atts.forEach(a => {
@@ -705,8 +966,12 @@ function simReviewMissed(a, missed) {
     const card = el('div', 'simmiss');
     card.appendChild(el('div', 'muted small',
       (n + 1) + ' of ' + missed.length + ' · '
-      + (q.scn ? simScenarioName(q.scn, a.exam) : 'Additional')));
+      + (q.scn ? simScenarioName(q.scn, a.exam)
+        : simConfig(a.exam).mode === 'domain' ? simDomainName(simDomainOf(q), a.exam)
+        : 'Additional')));
     card.appendChild(el('p', 'simmissstem', q.stem));
+    // The exhibit again: a question about code cannot be reviewed without it.
+    if (q.exhibit) card.appendChild(simExhibit(q.exhibit));
     const ans = a.answers[q.id];
     card.appendChild(simAnswerList(q, ans.picked, ans.order));
     card.appendChild(simFeedback(q, ans.picked, ans.order));
@@ -727,24 +992,27 @@ function simReviewMissed(a, missed) {
    is clickable, and a button would need its font restated. */
 function simAnswerList(q, picked, order) {
   const keys = order && order.length ? order : q.options.map(o => o.key);
+  const want = simCorrectKeys(q), got = simPickedKeys(picked);
   const wrap = el('div', 'opts simmissopts');
+  if (simIsMulti(q)) wrap.appendChild(el('div', 'muted small', 'Select ' + simSelectWord(simSelectCount(q))));
   keys.forEach((key, pos) => {
     const opt = q.options.find(o => o.key === key);
     if (!opt) return;
     const row = el('div', 'opt done');
-    if (key === q.correct) row.classList.add('right');
-    else if (key === picked) row.classList.add('wrong');
+    const mine = got.includes(key), right = want.includes(key);
+    if (right) row.classList.add('right');
+    else if (mine) row.classList.add('wrong');
     row.appendChild(el('span', 'optkey', String.fromCharCode(65 + pos)));
     const txt = el('span', 'opttext', opt.text);
-    if (key === picked || key === q.correct) {
-      const tag = key === picked && key === q.correct ? 'Your answer · correct'
-        : key === picked ? 'Your answer' : 'Best answer';
+    if (mine || right) {
+      const tag = mine && right ? 'Your answer · correct'
+        : mine ? 'Your answer' : want.length > 1 ? 'Correct answer' : 'Best answer';
       txt.appendChild(el('span', 'simmisstag', tag));
     }
     row.appendChild(txt);
     wrap.appendChild(row);
   });
-  if (!picked) wrap.appendChild(el('div', 'muted small', 'You left this one unanswered.'));
+  if (!got.length) wrap.appendChild(el('div', 'muted small', 'You left this one unanswered.'));
   return wrap;
 }
 
@@ -752,26 +1020,48 @@ function simAnswerList(q, picked, order) {
 function renderSim() {
   const wrap = $('#simStartBody'); wrap.innerHTML = '';
   const examCode = S.exam;
+  simSetSubtitle(examCode);
   const bank = simBank(examCode);
   if (!bank.length) {
     wrap.appendChild(el('p', 'muted', 'No simulation questions are loaded.'));
     return;
   }
 
-  const counts = {};
-  bank.forEach(q => { counts[q.scn] = (counts[q.scn] || 0) + 1; });
-  const scns = ((EXAMS[examCode] || {}).scenarios || []);
-  const ready = scns.filter(s => (counts[s.id] || 0) >= SIM_BLOCK).length;
+  /* What the bank must supply, per unit. For a scenario paper the units are
+     the scenarios and each needs a full block; for a domain paper they are
+     the domains, each needing its blueprint share of the paper. Everything
+     below reads these, so the two kinds of paper share one start screen. */
+  const cfg = simConfig(examCode);
+  const domainMode = cfg.mode === 'domain';
+  const ex = EXAMS[examCode] || {};
+  const scns = ex.scenarios || [];
+  let units;
+  if (domainMode) {
+    const quotas = simDomainQuotas(examCode, cfg.target);
+    units = (ex.domains || []).map(d => ({ t: d.name, need: quotas[d.id] || 0,
+      have: bank.filter(q => simDomainOf(q) === d.id).length }));
+  } else {
+    units = scns.map(s => ({ t: s.t, need: cfg.perBlock,
+      have: bank.filter(q => q.scn === s.id).length }));
+  }
+  const ready = units.filter(u => u.have >= u.need).length;
+  const unitWord = domainMode ? 'domain' : 'scenario';
 
   /* The page is ordered by what a visit is for. Starting a sitting comes
      first, then your own past attempts; the drill and objective history,
      then the reflexes and tiebreaker guide, are opened when wanted, so
      each folds to a title and one line. Open all at once they pushed the
      drill a screen and a half below the start buttons. */
-  wrap.appendChild(el('p', 'simlede',
-    'The real sitting draws ' + SIM_BLOCKS + ' of the ' + scns.length + ' scenarios and asks '
-    + SIM_BLOCK + ' questions on each — ' + SIM_TARGET + ' questions in ' + SIM_MINUTES
-    + ' minutes, single-select, no feedback until you submit.'));
+  const NUM = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+    'nine', 'ten', 'eleven', 'twelve'];
+  wrap.appendChild(el('p', 'simlede', domainMode
+    ? 'The real exam asks ' + cfg.target + ' questions in ' + cfg.minutes + ' minutes across '
+      + (NUM[units.length] || units.length) + ' domains, weighted by the blueprint. '
+      + (cfg.multi ? 'Some questions ask you to select more than one answer. ' : '')
+      + 'No feedback until you submit.'
+    : 'The real sitting draws ' + cfg.blocks + ' of the ' + scns.length + ' scenarios and asks '
+      + cfg.perBlock + ' questions on each — ' + cfg.target + ' questions in ' + cfg.minutes
+      + ' minutes, single-select, no feedback until you submit.'));
 
   const acts = el('div', 'actions');
   const exam = el('button', 'btn examcta', 'Start exam · timed');
@@ -781,8 +1071,10 @@ function renderSim() {
     let msg = 'Start a timed sitting?\n\n' + sit.total + ' questions, '
       + sit.minutes + ' minutes, no feedback until you submit.';
     if (sit.filled) msg += '\n\n' + sit.filled + ' question'
-      + (sit.filled === 1 ? '' : 's') + ' will be added from other scenarios to reach '
-      + sit.target + ', because the bank is not yet ' + SIM_BLOCK + ' deep on every scenario.';
+      + (sit.filled === 1 ? '' : 's') + ' will be added from other ' + unitWord + 's to reach '
+      + sit.target + (domainMode
+        ? ', because the bank cannot yet fill every domain\'s share.'
+        : ', because the bank is not yet ' + cfg.perBlock + ' deep on every scenario.');
     if (!confirm(msg)) return;
     simStart('exam', {});
   };
@@ -796,43 +1088,57 @@ function renderSim() {
     + 'again to restore it. On a keyboard, focus the option and press X.'));
 
   /* Say plainly what the bank can and cannot do today, before anyone starts.
-     When every scenario is deep enough there is nothing to act on, so the
-     per-scenario counts fold away behind the total. A short scenario opens
-     them, because then the paper is topped up and the reader should see why. */
+     When every unit is deep enough there is nothing to act on, so the
+     per-unit counts fold away behind the total. A short one opens them,
+     because then the paper is topped up and the reader should see why. */
   const avail = bank.length;
-  const short = scns.length - ready;
+  const short = units.length - ready;
   const note = el('details', 'simavail');
   note.open = short > 0;
   const nsum = el('summary');
   nsum.appendChild(el('span', 'simavailhead', avail + ' questions in the bank'));
-  nsum.appendChild(el('span', 'muted small', short
-    ? ' · ' + short + ' scenario' + (short === 1 ? '' : 's') + ' short of ' + SIM_BLOCK
-    : ' · every scenario has at least ' + SIM_BLOCK));
+  nsum.appendChild(el('span', 'muted small', domainMode
+    ? (short ? ' · ' + short + ' domain' + (short === 1 ? '' : 's') + ' short of a full share'
+             : ' · every domain can fill its share')
+    : (short ? ' · ' + short + ' scenario' + (short === 1 ? '' : 's') + ' short of ' + cfg.perBlock
+             : ' · every scenario has at least ' + cfg.perBlock)));
   note.appendChild(nsum);
-  const detail = ready === scns.length
-    ? el('div', 'muted small', 'A sitting draws ' + SIM_BLOCK + ' questions from each of ' + SIM_BLOCKS + ' scenarios. Every scenario has at least that many, so a full sitting is drawn exactly as the real exam does; the more a scenario holds, the less often a question comes round again.')
-    : el('div', 'muted small',
-        ready + ' of ' + scns.length + ' scenarios have the full ' + SIM_BLOCK + '. '
-        + 'A sitting takes what each drawn scenario has and tops the paper up from the '
-        + 'others to reach ' + SIM_TARGET + '; the extras are shown separately and the '
-        + 'result says how many there were.');
+  let detail;
+  if (domainMode) {
+    detail = el('div', 'muted small', ready === units.length
+      ? 'A sitting takes each domain\'s share of the ' + cfg.target + ' questions by blueprint '
+        + 'weight. Every domain has at least its share, so a full paper is drawn as the '
+        + 'blueprint weights it; the more a domain holds, the less often a question comes round again.'
+      : ready + ' of ' + units.length + ' domains can fill their share. A sitting takes what '
+        + 'each has and tops the paper up from the others to reach ' + cfg.target
+        + '; the extras are shown separately and the result says how many there were.');
+    if (cfg.itemsNote) detail.appendChild(el('span', null, ' ' + cfg.itemsNote + '.'));
+  } else {
+    detail = ready === units.length
+      ? el('div', 'muted small', 'A sitting draws ' + cfg.perBlock + ' questions from each of ' + cfg.blocks + ' scenarios. Every scenario has at least that many, so a full sitting is drawn exactly as the real exam does; the more a scenario holds, the less often a question comes round again.')
+      : el('div', 'muted small',
+          ready + ' of ' + units.length + ' scenarios have the full ' + cfg.perBlock + '. '
+          + 'A sitting takes what each drawn scenario has and tops the paper up from the '
+          + 'others to reach ' + cfg.target + '; the extras are shown separately and the '
+          + 'result says how many there were.');
+  }
   note.appendChild(detail);
   /* Counts in words, not bars. A bar against the deepest scenario, with a
      tick at the block size, made the reader decode a chart to learn two
      facts: how many questions a scenario has, and whether that is enough.
      The sentence above says why the count matters; a short scenario says so
      beside its count. Three columns, not auto-fit: six scenarios divide
-     evenly into 3, 2 and 1, where auto-fit left one orphaned on its own row. */
+     evenly into 3, 2 and 1, where auto-fit left one orphaned on its own row;
+     eight domains fill three columns as 3, 3, 2. */
   const grid = el('div', 'simscngrid');
-  scns.forEach(s => {
-    const c = counts[s.id] || 0;
-    const isShort = c < SIM_BLOCK;
+  units.forEach(u => {
+    const isShort = u.have < u.need;
     const cell = el('div', 'simscncell' + (isShort ? ' short' : ''));
-    cell.appendChild(el('span', 'simscnt', s.t));
-    const n = el('span', 'simscnn', String(c));
-    if (isShort) n.appendChild(el('span', 'simscnshort', ' · short of ' + SIM_BLOCK));
+    cell.appendChild(el('span', 'simscnt', u.t));
+    const n = el('span', 'simscnn', String(u.have));
+    if (isShort) n.appendChild(el('span', 'simscnshort', ' · short of ' + u.need));
     cell.appendChild(n);
-    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · a sitting draws ' + SIM_BLOCK;
+    cell.title = u.have + ' question' + (u.have === 1 ? '' : 's') + ' · a sitting draws ' + u.need;
     grid.appendChild(cell);
   });
   note.appendChild(grid);
@@ -1085,9 +1391,14 @@ function initSim() {
   };
   $('#simReviewBack').onclick = () => { SIM.reviewing = false; simRender(); go('sim'); };
   $('#simSubmitExam').onclick = () => {
-    const un = SIM.total - SIM.list.filter(it => SIM.answers[it.q.id]).length;
-    const msg = un
-      ? 'Submit with ' + un + ' question' + (un === 1 ? '' : 's') + ' unanswered? They score zero.'
+    // Incomplete multi-selects score zero too, so they are named here rather
+    // than counted as answered.
+    const c = simPaperCounts();
+    const parts = [];
+    if (c.none) parts.push(c.none + ' question' + (c.none === 1 ? '' : 's') + ' unanswered');
+    if (c.partial) parts.push(c.partial + ' incomplete');
+    const msg = parts.length
+      ? 'Submit with ' + parts.join(' and ') + '? They score zero.'
       : 'Submit the paper? You cannot change answers afterwards.';
     if (!confirm(msg)) return;
     simSubmit(false);

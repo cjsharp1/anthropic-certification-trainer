@@ -68,7 +68,8 @@ const src = [
   shim,
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={SIM_QUESTIONS,SIM_OBJECTIVES,SIM_SOURCES,EXAMS,'
-  + 'buildSitting,simSubmit,simStart,simBank,simObjectives,SIM_BLOCK,SIM_TARGET,'
+  + 'buildSitting,simSubmit,simStart,simBank,simObjectives,simConfig,simDomainQuotas,'
+  + 'simIsCorrect,simIsMulti,simCorrectKeys,'
   + 'simScenarioName,S,getSIM:function(){return SIM;},setSIM:function(v){SIM=v;}};'
 ].join('\n;\n');
 
@@ -229,7 +230,9 @@ H('8b. Repeated sittings rotate through the bank');
   const bank = O.simBank('CCAR-F');
   // A lap of the bank, plus two sittings of slack for the block structure:
   // a block cannot mix scenarios, so the last lap never packs perfectly.
-  const enough = Math.ceil(bank.length / O.SIM_TARGET) + 2;
+  // The paper size comes from the exam's sim config now, which replaced the
+  // SIM_TARGET constant when a second exam's paper had to differ.
+  const enough = Math.ceil(bank.length / O.simConfig('CCAR-F').target) + 2;
   let overlapped = 0, unfinished = 0, worst = bank.length;
   for (let t = 0; t < 40; t++) {
     O.S.simAttempts = [];
@@ -378,6 +381,132 @@ ok(thin.length === 0, 'every objective has at least ' + FLOOR + ' questions'
 const counts = perObj.map(([, n]) => n);
 ok(Math.min(...counts) >= FLOOR, 'the per-objective floor holds (min '
    + Math.min(...counts) + ', max ' + Math.max(...counts) + ')');
+
+H('13. Exam configuration, domain-quota papers and multi-select');
+/* CCDV-F names no scenarios, so its paper is drawn by domain quota, and its
+   items can ask for more than one answer. Nothing real is imported yet, so a
+   synthetic bank from tests/fixtures/sim-dv.js stands in. It is added last,
+   after every check that counts the CCAR-F bank, and stays out of them. */
+const DV = require('./fixtures/sim-dv');
+
+/* The four constants this replaced were CCAR-F's paper. An exam with no sim
+   block must still get exactly that paper, or adding config would have
+   quietly changed every existing sitting. */
+const arCfg = O.simConfig('CCAR-F');
+ok(arCfg.mode === 'scenario' && arCfg.blocks === 4 && arCfg.perBlock === 15
+   && arCfg.target === 60 && arCfg.minutes === 120 && arCfg.multi === false,
+   'CCAR-F resolves to 4 blocks of 15, 60 questions, 120 minutes, single-select');
+const bare = O.simConfig('CCAO-F');
+ok(bare.mode === 'scenario' && bare.target === 60 && bare.minutes === 120,
+   'an exam with no sim block falls back to the CCAR-F paper');
+const dvCfg = O.simConfig('CCDV-F');
+ok(dvCfg.mode === 'domain' && dvCfg.target === 53 && dvCfg.minutes === 120 && dvCfg.multi,
+   'CCDV-F is a 53-item, 120-minute domain paper with multi-select');
+
+/* Largest remainder, not rounding. Rounding each share of 53 gives 52 and
+   rounding up gives 56; the blueprint table is the largest-remainder result,
+   so a builder that rounds would draw a paper one item short or three over. */
+const quotas = O.simDomainQuotas('CCDV-F', 53);
+const BLUEPRINT = { v1: 17, v2: 9, v3: 8, v4: 6, v5: 6, v6: 4, v7: 2, v8: 1 };
+ok(Object.keys(BLUEPRINT).every(d => quotas[d] === BLUEPRINT[d]),
+   'quotas for 53 items match the blueprint table: ' + JSON.stringify(quotas));
+const q70 = O.simDomainQuotas('CCDV-F', 70);
+ok(Object.values(q70).reduce((a, b) => a + b, 0) === 70,
+   'a 70-item paper (the reported change) still sums exactly to 70');
+
+QS.push(...DV.questions());
+OBJ.push(...DV.objectives());
+O.S.simAttempts = [];
+
+/* A question from one certification must never land in another's paper,
+   in either direction, now that the bank holds two. */
+const dvPaper = O.buildSitting({ exam: 'CCDV-F' });
+ok(dvPaper.total === 53 && dvPaper.filled === 0, 'a CCDV-F paper has 53 questions and no filler');
+ok(dvPaper.list.every(it => it.q.exam === 'CCDV-F'), 'a domain-mode paper never contains a CCAR-F question');
+const arPaper = O.buildSitting({ exam: 'CCAR-F' });
+ok(arPaper.total === 60 && arPaper.list.every(it => it.q.exam === 'CCAR-F'),
+   'and a CCAR-F paper never contains a CCDV-F question');
+const perDom = {};
+dvPaper.list.forEach(it => { perDom[it.q.domains[0]] = (perDom[it.q.domains[0]] || 0) + 1; });
+ok(Object.keys(BLUEPRINT).every(d => perDom[d] === BLUEPRINT[d]),
+   'each domain supplies exactly its quota');
+ok(dvPaper.blocks.length === 1 && dvPaper.blocks[0].scn === null && !dvPaper.blocks[0].filler,
+   'the paper is one block with no scenario, so block lookups keep working');
+/* Grouped by domain, 53 items change domain 7 times. The real exam mixes
+   them, and grouping would tell the candidate each item's domain. Any
+   random order of these quotas changes far more often than 7 times. */
+let switches = 0;
+dvPaper.list.forEach((it, i) => { if (i && it.q.domains[0] !== dvPaper.list[i - 1].q.domains[0]) switches++; });
+ok(switches > 15, 'the order is shuffled across domains, not grouped (' + switches + ' changes of domain)');
+
+/* A domain that cannot fill its share is topped up from the others, in a
+   separate block the start screen and results own up to. */
+const v8 = QS.filter(q => q.exam === 'CCDV-F' && q.domains[0] === 'v8');
+v8.forEach(q => QS.splice(QS.indexOf(q), 1));
+const topped = O.buildSitting({ exam: 'CCDV-F' });
+ok(topped.total === 53 && topped.filled === 1 && topped.blocks[1] && topped.blocks[1].filler,
+   'with no v8 questions the paper still reaches 53, with 1 filler in its own block');
+QS.push(...v8);
+
+/* An objective drill asks for a handful of sub-skills, so a quota would push
+   most of it into the filler block. It is drawn as one plain block. */
+const skillN = QS.filter(q => (q.objectives || []).includes('DV-8.1')).length;
+const dvDrill = O.buildSitting({ exam: 'CCDV-F', objectives: ['DV-8.1'], blocks: 6, perBlock: skillN, target: skillN });
+ok(dvDrill.total === skillN && dvDrill.filled === 0 && dvDrill.list.every(it => it.q.objectives.includes('DV-8.1')),
+   'a domain-mode objective drill holds only that sub-skill, with no filler block');
+ok(O.simObjectives('CCDV-F').every(o => o.exam === 'CCDV-F') && O.simObjectives('CCAR-F').length === 37,
+   'each exam\'s drill picker lists only its own objectives');
+
+/* No partial credit. One of two right is wrong, as is picking everything:
+   a scorer that counted overlap would pass both. */
+const mq = QS.find(q => q.id.startsWith('FX-') && O.simIsMulti(q));
+ok(!O.simIsCorrect(mq, ['A']), 'a multi-select with one of two correct picks scores as wrong');
+ok(O.simIsCorrect(mq, ['C', 'A']), 'both correct picks score right, in either order');
+ok(!O.simIsCorrect(mq, ['A', 'B', 'C']) && !O.simIsCorrect(mq, null),
+   'an extra pick, or no answer, scores as wrong');
+/* Attempts saved before multi-select store a bare key and are never migrated. */
+const sq = QS.find(q => q.exam === 'CCAR-F');
+ok(O.simIsCorrect(sq, sq.correct) && !O.simIsCorrect(sq, sq.options.find(o => o.key !== sq.correct).key),
+   'a single-select answer stored as a plain string still scores both ways');
+
+/* Answers are keys, never positions. Option order is shuffled per paper, so
+   a scorer that stored "the second and fourth options" would grade against
+   a different pair on every sitting. Answering by key through simSubmit
+   must score full marks whatever order each paper showed. */
+const before = JSON.stringify(mq.correct);
+for (let t = 0; t < 5; t++) {
+  const paper = Object.assign(O.buildSitting({ exam: 'CCDV-F' }), {
+    mode: 'exam', i: 0, answers: {}, flags: {}, revealed: {},
+    started: Date.now() - 1000, deadlineMs: 7200000, reviewing: false, objectives: null
+  });
+  paper.list.forEach(it => {
+    const right = O.simCorrectKeys(it.q);
+    const keys = it.order.filter(k => right.includes(k));
+    paper.answers[it.q.id] = O.simIsMulti(it.q) ? keys.slice().sort() : keys[0];
+  });
+  O.setSIM(paper);
+  O.simSubmit(false);
+}
+const fullMarks = O.S.simAttempts.slice(-5);
+ok(fullMarks.every(a => a.correct === a.total && a.exam === 'CCDV-F'),
+   'shuffled option order never changes which keys are correct (5 papers, all full marks)');
+ok(JSON.stringify(mq.correct) === before, 'and building papers never reorders a question\'s correct keys');
+ok(fullMarks.every(a => !Object.keys(a.byScn).length && Object.keys(a.byDom).length === 8),
+   'a domain paper records no scenarios and all eight domains');
+
+/* An under-answered multi-select is wrong, not half right. */
+const under = Object.assign(O.buildSitting({ exam: 'CCDV-F' }), {
+  mode: 'exam', i: 0, answers: {}, flags: {}, revealed: {},
+  started: Date.now(), deadlineMs: 7200000, reviewing: false, objectives: null
+});
+const multiIt = under.list.find(it => O.simIsMulti(it.q));
+under.answers[multiIt.q.id] = [O.simCorrectKeys(multiIt.q)[0]];
+O.setSIM(under);
+O.simSubmit(false);
+const ua = O.S.simAttempts[O.S.simAttempts.length - 1];
+ok(ua.answers[multiIt.q.id].ok === false && Array.isArray(ua.answers[multiIt.q.id].picked),
+   'an under-answered multi-select scores wrong and keeps its picks as an array');
+O.S.simAttempts = [];
 
 console.log('');
 if (fail) { console.log(fail + ' failure' + (fail === 1 ? '' : 's')); process.exit(1); }

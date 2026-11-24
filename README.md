@@ -457,6 +457,7 @@ tools/                 build and audits — never shipped
 tests/                 behaviour suites (22) — never shipped
   *-test.js
   tts-highlight-regress.js   mutation harness for the highlight suite
+  fixtures/            shared test data (a synthetic CCDV-F sim bank); not run as suites
 
 docs/                  VERIFICATION.md — hard-tier source audit
                        TIEBREAKERS.md — generated tiebreaker guide
