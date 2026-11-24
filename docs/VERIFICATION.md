@@ -31,6 +31,8 @@ derived from them by short uncontroversial steps, does not ship.
 | Exam Simulation — judgement | 152 | not verified |
 | CCDV-F simulation set 1 | 62 | facts checked 2026-11-24 (see below) |
 | CCDV-F drill set 1 | 59 | facts checked 2026-11-24 (see below) |
+| CCAO-F simulation set 1 | 60 | facts checked 2026-11-24 (see below) |
+| CCAO-F drill set 1 | 20 | facts checked 2026-11-24 (see below) |
 
 The hard-tier rows are verified one question at a time. The simulation rows
 are the pass recorded under *Exam Simulation bank* below: its fact-bearing
@@ -731,6 +733,51 @@ Checked again on import, 2026-11-24:
   design call rather than a documented fact, are **reviewed as reasoning**,
   as for the CCAR-F simulation.
 
+### CCAO-F set 1 (AO-001 to AO-060, aox-001 to aox-020), checked 2026-11-24
+
+Sixty simulation questions (`data-sim-questions-ao.js`) and twenty drill
+questions (`data-questions-11.js`) from the architect handoff. Associate
+questions lean on claude.ai features, which change faster than anything else
+in the trainer, so every row below is volatile. The rows are copied from the
+handoff's fact sheet as delivered, checked against Anthropic's help center
+on 2026-11-24.
+
+| Fact | Used by | Source |
+|---|---|---|
+| Exam: 60 multiple-choice and multiple-response items, 120 minutes, pass 720, $99; guide v1.1 changed only registration, ID and support info | blueprint | [Exam guide v1.1](https://cc.sj-cdn.net/instructor/6nizmqk8tpzpfjvt6qmmav7rh/public/1794946524/Claude_Certified_Associate_-_Foundations_Exam_Guide.pdf) |
+| Model tiers: Haiku fastest and lowest cost, Opus most capable, Sonnet between; the guide's sample question rewards matching the model to the task | AO-022, AO-023, aox-001 to aox-003 | [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) |
+| Projects: knowledge and instructions apply across the Project's chats; on paid plans, knowledge near the context limit switches automatically to retrieval (RAG), expanding capacity up to about 10x | AO-025, AO-028, AO-039, aox-019 | [What are projects?](https://support.claude.com/en/articles/9517075-what-are-projects), [RAG for projects](https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects) |
+| Shared Projects (Team and Enterprise): "Can view" members see contents and chat but can't edit; "Can edit" members can modify | aox-020 | [What are projects?](https://support.claude.com/en/articles/9517075-what-are-projects) |
+| Research runs multiple searches that build on each other and returns a cited report; it needs web search turned on; paid plans | AO-024, AO-058, aox-004 to aox-006 | [Use research on Claude](https://support.claude.com/en/articles/11088861-use-research-on-claude) |
+| Google Workspace connectors: actions on your behalf require approval by default; Drive file reading extracts text only, embedded images aren't processed | AO-040, AO-043, aox-007 to aox-010 | [Use Google Workspace connectors](https://support.claude.com/en/articles/10166901-use-google-workspace-connectors) |
+| Memory: Claude saves useful context about you and your work; each Project has its own memory, used alongside memory from chats outside Projects but not other Projects | aox-013, aox-014 | [Chat search and memory](https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context) |
+| Incognito chats aren't saved to history or used in chat search; on Team and Enterprise plans, organization retention policies still apply | aox-015, aox-016 | [Chat search and memory](https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context) |
+| Skills package instructions and files for a workflow; they require code execution and file creation to be enabled (an owner enables it on Team and Enterprise) | AO-059, aox-017, aox-018 | [Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude) |
+
+Checked again on import, 2026-11-24:
+
+- **Links.** Every source above, and every source the 60 simulation
+  questions cite, returned 200, including the prompt engineering overview the
+  fact sheet had not re-opened.
+- **Volatile audit of the existing CCAO-F bank.** Of 174 existing questions,
+  38 mention a claude.ai feature. Eight have an answer that depends on how a
+  feature behaves today and now carry `volatile: true` and `contentDate`
+  2026-11-24: as-a5-08 and hao-a5-05 (Project instructions and knowledge load
+  automatically), as-a5-10 and hao-a5-06 (Research gathers across sources),
+  as-a5-11 (Artifacts keep a revisable document), as-a6-04 (Project
+  instructions load into every conversation), as-a6-08 (Projects separate
+  knowledge from instructions), and as-a6-01. The other thirty name a feature
+  while testing prompting, configuration discipline or troubleshooting, or
+  state context-window facts that hold whatever the product does.
+- **as-a6-01 looks out of date, and was not changed.** Its answer (shared
+  Project context that loads automatically) still holds. Its explanation
+  dismisses "Ask Claude to remember it" because "each one starts fresh", but
+  Memory now carries context across chats (row above). The distractor is
+  still the weaker choice for team-wide conventions, since memory is personal
+  and unshared, but the stated reason needs rewording.
+- The judgment questions in both sets, where the answer is a defensible call
+  rather than a documented fact, are **reviewed as reasoning**.
+
 ## Re-verification
 
 Claims grounded in documentation should be re-checked when the docs change.
@@ -744,4 +791,6 @@ on 2026-11-11, and two of them had already moved under the bank's feet — the
 Task tool renamed to Agent, and three documentation URLs consolidated. The
 Claude Code surface moves faster than the exam guide, so the CLI, hooks,
 subagent and MCP clusters are the ones most worth re-checking first. For
-CCDV-F set 1, start with the questions marked `volatile: true`.
+CCDV-F set 1, start with the questions marked `volatile: true`. CCAO-F rests on
+claude.ai features, the fastest-moving surface of all, so re-check its set 1
+and the eight flagged older questions first.

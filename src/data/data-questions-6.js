@@ -294,7 +294,7 @@ QUESTIONS.push(
   opts:["Start with the most capable tier available and downgrade once quality is established","Try the cheapest tier that might work and move up if quality falls short on real examples","Match the tier to whatever the team's budget comfortably allows it to spend per month","Use the newest model available, on the basis that it supersedes the earlier ones"],
   why:"Testing upward on your own examples establishes what the task actually needs, rather than paying for capability you cannot show is required. Defaulting to the top tier is explicitly called out as wasting cost and latency, and budget or recency are not measures of fit."},
 
-{ id:"as-a5-08", exam:"CCAO-F", d:"a5", kind:"scenario",
+{ id:"as-a5-08", exam:"CCAO-F", d:"a5", kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"Your team repeatedly pastes the same reference material into separate conversations. What product feature addresses this?",
   a:2,
   opts:["A longer context window, so the material fits alongside the work","A more capable model tier that retains the reference more reliably","A Project with instructions and knowledge that load automatically","Saving the material in a shared document people paste from"],
@@ -306,13 +306,13 @@ QUESTIONS.push(
   opts:["It covers the whole conversation plus any attachments and the response","A larger window improves reasoning quality","Filling a large window on every call has a real cost","The window resets after each response"],
   why:"The window spans everything the model considers at once and you pay for what you send, so routinely filling a large one is expensive. It does not make the model reason better, and it does not reset between turns — the conversation accumulates within it, which is what eventually saturates it."},
 
-{ id:"as-a5-10", exam:"CCAO-F", d:"a5", kind:"scenario",
+{ id:"as-a5-10", exam:"CCAO-F", d:"a5", kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"A task needs multi-source gathering before an answer can be given. Which capability fits?",
   a:1,
   opts:["A larger context window, so all the sources fit in one conversation","Research mode, which gathers across sources before answering","A faster model tier, so several sources can be consulted quickly","A Project, with the relevant sources added to its knowledge"],
   why:"Research mode is the feature for questions that require collecting from several sources before responding. A bigger window holds more material you have already found, Projects carry standing context, and speed does not help a gathering problem."},
 
-{ id:"as-a5-11", exam:"CCAO-F", d:"a5", kind:"scenario",
+{ id:"as-a5-11", exam:"CCAO-F", d:"a5", kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"You need a document you will revise over several sessions. Which feature is designed for that?",
   a:0,
   opts:["Artifacts, which keep a document you can revise and share","A longer conversation, so the document stays in the history","Research mode, which gathers the material the document needs","A more capable model, which revises more reliably over time"],
@@ -320,7 +320,7 @@ QUESTIONS.push(
 
 /* ---- a6: Configuration and Knowledge Management (12%) ---- */
 
-{ id:"as-a6-04", exam:"CCAO-F", d:"a6", kind:"scenario",
+{ id:"as-a6-04", exam:"CCAO-F", d:"a6", kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"Your organization has rules about which data may be used with AI tools. Where do they belong?",
   a:1,
   opts:["In a team chat channel, so that everybody sees them as they are posted up","In Project instructions, where they load into every conversation automatically","In each person's own private notes, so they have them where they work","Repeated at the start of every conversation that touches that kind of data"],
@@ -344,7 +344,7 @@ QUESTIONS.push(
   opts:["Whether they are on different model tiers — Haiku, Sonnet or Opus — for the same work","Whether some of them are simply more practised at writing prompts than the others","Whether the task is too loosely defined to produce the same answer for anybody","Whether they are working from the same configuration — Project, instructions and knowledge"],
   why:"Inconsistency across people almost always traces to inconsistent configuration, so comparing what each person actually loads comes before investigating skill or task difficulty. Tier differences are worth ruling out but are a narrower cause."},
 
-{ id:"as-a6-08", exam:"CCAO-F", d:"a6", kind:"recall",
+{ id:"as-a6-08", exam:"CCAO-F", d:"a6", kind:"recall", volatile:true, contentDate:"2026-11-24",
   q:"What belongs in a Project's knowledge rather than in its instructions?",
   a:1,
   opts:["Rules about the tone and the format that every single response should follow","Reference material the model should draw on, such as documentation or style guides","The name of the person who owns the Project and maintains the contents of it","Which model tier the conversations inside the Project should use by default"],

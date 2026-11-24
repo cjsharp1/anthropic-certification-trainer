@@ -176,6 +176,12 @@ const EXAMS = {
     fee: "$99 USD",
     blurb: "Operate Claude professionally; turn business problems into dependable workflows.",
     audience: "Practitioners using Claude as a daily productivity tool. No prerequisites.",
+    /* CCAO-F, like CCDV-F, names no scenarios, so a paper is drawn by domain
+       quota. Guide v1.1: 60 items, multiple-choice and multiple-response.
+       No hardInSim: its 16 hard drill questions are not in this bank, so the
+       hard-mode button stays, as CCDV-F's did. */
+    sim: { mode: "domain", items: 60, minutes: 120, multi: true,
+           itemsNote: "Guide v1.1 (November 2026): 60 items" },
     domains: [
       { id: "a4", num: 1, name: "Prompting and Task Execution",            weight: 14 },
       { id: "a1", num: 2, name: "Output Evaluation and Validation",        weight: 21 },

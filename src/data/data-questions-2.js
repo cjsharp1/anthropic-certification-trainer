@@ -432,7 +432,7 @@ QUESTIONS.push(
   opts:["Stating what you want specifically","Explaining why, when the reason guides judgment","Using emphatic language","Showing the desired output format"],
   why:"Specificity and a concrete format example remove ambiguity, and explaining the purpose helps the model handle cases your instruction didn't anticipate. Emphatic language — capitals, 'VERY IMPORTANT', repetition — adds insistence without adding information, and if the instruction was unclear, saying it louder doesn't clarify it."},
 
-{ id:"as-a6-01", exam:"CCAO-F", d:"a6", kind:"scenario",
+{ id:"as-a6-01", exam:"CCAO-F", d:"a6", kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"You repeatedly give Claude the same background about your team's conventions in every conversation. Better approach?",
   a:1,
   opts:["Keep pasting it, since that guarantees it is present every time","Store it as persistent project context that loads automatically","Shorten it until it fits in a single line you can paste quickly","Ask Claude to remember it for the next conversation you start"],

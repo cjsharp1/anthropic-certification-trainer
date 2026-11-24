@@ -3,9 +3,9 @@ const P = require('./paths');
 const dir = process.argv[2] || P.ROOT;
 const ctx={console, structuredClone};
 vm.createContext(ctx);
-const files=['data-exams.js','data-questions.js','data-questions-2.js','data-questions-3.js','data-questions-4.js','data-questions-5.js','data-questions-6.js','data-questions-7.js','data-questions-8.js','data-questions-9.js','data-questions-10.js','data-questions-held.js','data-questions-held-ao.js','data-questions-held-dv.js','data-questions-held-pr.js','data-questions-hard-ao.js','data-questions-hard-ar.js','data-questions-hard-dv.js','data-questions-hard-pr.js','data-labs.js','data-starters.js','data-notes.js',
+const files=['data-exams.js','data-questions.js','data-questions-2.js','data-questions-3.js','data-questions-4.js','data-questions-5.js','data-questions-6.js','data-questions-7.js','data-questions-8.js','data-questions-9.js','data-questions-10.js','data-questions-11.js','data-questions-held.js','data-questions-held-ao.js','data-questions-held-dv.js','data-questions-held-pr.js','data-questions-hard-ao.js','data-questions-hard-ar.js','data-questions-hard-dv.js','data-questions-hard-pr.js','data-labs.js','data-starters.js','data-notes.js',
   // The sub-skill list, so a drill question's `sk` can be checked against it.
-  'data-sim-objectives.js','data-sim-objectives-dv.js'];
+  'data-sim-objectives.js','data-sim-objectives-dv.js','data-sim-objectives-ao.js'];
 const src=files.map(f=>fs.readFileSync(P.resolve(f),'utf8')).join('\n;\n')
   + '\n;globalThis.__out={QUESTIONS,EXAMS,EXAM_ORDER,LABS,NOTES,CARDS,STARTERS,NO_STARTER,SIM_OBJECTIVES};';
 vm.runInContext(src, ctx, {filename:'bundle.js'});

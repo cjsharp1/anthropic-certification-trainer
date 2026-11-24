@@ -16,8 +16,9 @@ let fail = 0;
 const ok = (c, m) => { if (!c) { console.log('  FAIL:', m); fail++; } else console.log('  ok:', m); };
 const H = t => console.log(String.fromCharCode(10) + t);
 
-const need = ['data-sim-questions.js', 'data-sim-questions-dv.js', 'data-sim-objectives.js',
-              'data-sim-objectives-dv.js', 'sim.js', 'data-exams.js'];
+const need = ['data-sim-questions.js', 'data-sim-questions-dv.js', 'data-sim-questions-ao.js',
+              'data-sim-objectives.js', 'data-sim-objectives-dv.js', 'data-sim-objectives-ao.js',
+              'sim.js', 'data-exams.js'];
 for (const f of need) {
   if (!fs.existsSync(PATHS.resolve(f))) {
     console.log(f + ' not found');
@@ -66,8 +67,10 @@ const src = [
   fs.readFileSync(PATHS.resolve('data-exams.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions-dv.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-questions-ao.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives-dv.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-objectives-ao.js'), 'utf8'),
   shim,
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={SIM_QUESTIONS,SIM_OBJECTIVES,SIM_SOURCES,EXAMS,'
@@ -81,14 +84,19 @@ catch (e) { console.log('sim.js failed to load:', e.message); process.exit(1); }
 
 const O = ctx.__o;
 const { SIM_QUESTIONS: QS, SIM_OBJECTIVES: OBJ, EXAMS } = O;
-/* The pool holds two exams since CCDV-F set 1 arrived on 2026-11-24. The
-   rules below that describe CCAR-F's shape (four options, a scenario on
-   every question, the per-objective floor) read the CCAR-F slice; CCDV-F's
-   own shape is checked in section 12. */
+/* The pool holds three exams: CCDV-F set 1 arrived on 2026-11-24 and CCAO-F
+   set 1 the same week. The rules below that describe CCAR-F's shape (four
+   options, a scenario on every question, the per-objective floor) read the
+   CCAR-F slice. CCDV-F and CCAO-F share the domain-paper shape (no
+   scenarios, multi-select allowed), checked together in section 12. */
 const AR = QS.filter(q => q.exam === 'CCAR-F');
 const DVQ = QS.filter(q => q.exam === 'CCDV-F');
+const AOQ = QS.filter(q => q.exam === 'CCAO-F');
 const AR_OBJ = OBJ.filter(o => o.exam === 'CCAR-F');
 const DV_OBJ = OBJ.filter(o => o.exam === 'CCDV-F');
+const AO_OBJ = OBJ.filter(o => o.exam === 'CCAO-F');
+// The domain-paper exams, each with its questions.
+const DOMAIN_BANKS = [['CCDV-F', DVQ], ['CCAO-F', AOQ]];
 /* No score report ships; section 5 asserts that. */
 const REP = ctx.SIM_SCORE_REPORT !== undefined ? ctx.SIM_SCORE_REPORT : undefined;
 
@@ -109,14 +117,19 @@ ok(AR_OBJ.length === 37, 'holds 37 CCAR-F test objectives, found ' + AR_OBJ.leng
    questions arrived or vanished, so update it deliberately. */
 ok(DVQ.length === 62, 'holds 62 CCDV-F questions, found ' + DVQ.length);
 ok(DV_OBJ.length === 25, 'holds 25 CCDV-F sub-skills, found ' + DV_OBJ.length);
-ok(AR.length + DVQ.length === QS.length, 'and nothing from any other exam');
-ok(new Set(QS.map(q => q.id)).size === QS.length, 'every question id is unique across both exams');
-ok(new Set(OBJ.map(o => o.id)).size === OBJ.length, 'every objective id is unique across both exams');
-/* CCAR-F's real paper is all single-select. CCDV-F states on every item how
-   many to select, and mixes the two. */
+/* 60 CCAO-F questions and 27 sub-skills since 2026-11-24 (set 1 from the
+   architect handoff): one 60-item paper's worth, exactly a quota per domain. */
+ok(AOQ.length === 60, 'holds 60 CCAO-F questions, found ' + AOQ.length);
+ok(AO_OBJ.length === 27, 'holds 27 CCAO-F sub-skills, found ' + AO_OBJ.length);
+ok(AR.length + DVQ.length + AOQ.length === QS.length, 'and nothing from any other exam');
+ok(new Set(QS.map(q => q.id)).size === QS.length, 'every question id is unique across all three exams');
+ok(new Set(OBJ.map(o => o.id)).size === OBJ.length, 'every objective id is unique across all three exams');
+/* CCAR-F's real paper is all single-select. CCDV-F and CCAO-F state on every
+   item how many to select, and mix the two. */
 ok(AR.every(q => q.format === 'single_select'), 'every CCAR-F question is single-select');
-ok(DVQ.every(q => q.format === 'single_select' || q.format === 'multi_select'),
-   'every CCDV-F question is single_select or multi_select');
+DOMAIN_BANKS.forEach(([ex, bank]) =>
+  ok(bank.every(q => q.format === 'single_select' || q.format === 'multi_select'),
+     'every ' + ex + ' question is single_select or multi_select'));
 
 H('2. Every question obeys the import rules');
 const bad = [];
@@ -135,10 +148,12 @@ const scnIds = (EXAMS['CCAR-F'].scenarios || []).map(s => s.id);
 const domIds = (EXAMS['CCAR-F'].domains || []).map(d => d.id);
 ok(AR.every(q => scnIds.includes(q.scn)), 'every CCAR-F question maps to a known scenario id');
 ok(AR.every(q => q.domains.every(d => domIds.includes(d))), 'every CCAR-F domain maps to a known domain id');
-const dvDomIds = (EXAMS['CCDV-F'].domains || []).map(d => d.id);
-ok(DVQ.every(q => q.scn === null), 'no CCDV-F question claims a scenario: the exam names none');
-ok(DVQ.every(q => q.domains.length && q.domains.every(d => dvDomIds.includes(d))),
-   'every CCDV-F domain maps to a known CCDV-F domain id');
+DOMAIN_BANKS.forEach(([ex, bank]) => {
+  const ids = (EXAMS[ex].domains || []).map(d => d.id);
+  ok(bank.every(q => q.scn === null), 'no ' + ex + ' question claims a scenario: the exam names none');
+  ok(bank.every(q => q.domains.length && q.domains.every(d => ids.includes(d))),
+     'every ' + ex + ' domain maps to a known ' + ex + ' domain id');
+});
 // The handoff names this scenario differently from the exam guide; if the
 // alias is ever dropped its questions silently vanish from their block. 19
 // since 2026-11-18: BAL-073 (a CI review prompt) joined, and REF-070, REF-071,
@@ -169,8 +184,9 @@ ok(OBJ.filter(o => !o.questions.length).length === 0, 'none are left uncovered, 
 const byId = Object.fromEntries(OBJ.map(o => [o.id, o]));
 ok(QS.every(q => q.objectives.every(o => byId[o].exam === q.exam)),
    'every question cites only its own exam\'s objectives');
-ok(DVQ.every(q => q.objectives.every(o => byId[o].domain === q.domains[0])),
-   'every CCDV-F sub-skill a question cites belongs to that question\'s domain');
+DOMAIN_BANKS.forEach(([ex, bank]) =>
+  ok(bank.every(q => q.objectives.every(o => byId[o].domain === q.domains[0])),
+     'every ' + ex + ' sub-skill a question cites belongs to that question\'s domain'));
 
 // Strip comments first: sim.js's own header says it touches neither, and a
 // naive search would match that sentence and pass for the wrong reason.
@@ -392,7 +408,7 @@ ok(noExpl === 0, 'every option carries an explanation');
 ok(badScn === 0, 'every scenario id resolves against the CCAR-F scenario list');
 ok(badField === 0, 'every question has stem, tiebreaker, rationale and set');
 
-/* CCDV-F's shape. A single-select is the CCAR-F rule: four options, one
+/* The domain-paper shape, shared by CCDV-F and CCAO-F. A single-select is the CCAR-F rule: four options, one
    correct key. A multi-select names an array of exactly `select` keys, at
    least two of them, each a real option, from four to six options, and
    leaves at least one option wrong: an all-correct item is answered by the
@@ -400,7 +416,11 @@ ok(badField === 0, 'every question has stem, tiebreaker, rationale and set');
    keeps the volatile flag and content date that let stale ones be found. */
 const LANGS = ['json', 'python', 'typescript', 'bash', 'sse', 'text'];
 const dvBad = [];
-for (const q of DVQ) {
+/* Every domain-paper question is checked here, and its id joins `ids`, so
+   the objectives index below can resolve CCAO-F's question lists as well
+   as CCDV-F's. Before CCAO-F arrived this loop read CCDV-F alone, and its
+   objectives read as dangling. */
+for (const q of [...DVQ, ...AOQ]) {
   if (ids.has(q.id)) dvBad.push(q.id + ': id clashes'); else ids.add(q.id);
   const keys = (q.options || []).map(o => o.key);
   if ((q.options || []).some(o => !o.text || !String(o.explanation || '').trim())) dvBad.push(q.id + ': option missing text/explanation');
@@ -418,11 +438,13 @@ for (const q of DVQ) {
   if (typeof q.volatile !== 'boolean' || !/^\d{4}-\d{2}-\d{2}$/.test(q.contentDate || '')) dvBad.push(q.id + ': lost volatile/contentDate');
   if (!q.stem || !q.tiebreaker || !q.rationale || !q.set || !(q.sources || []).length) dvBad.push(q.id + ': missing a required field');
 }
-ok(!dvBad.length, 'all ' + DVQ.length + ' CCDV-F questions are well formed'
+ok(!dvBad.length, 'all ' + (DVQ.length + AOQ.length) + ' CCDV-F and CCAO-F questions are well formed'
    + (dvBad.length ? ' — ' + dvBad.slice(0, 5).join('; ') : ''));
 ok(DVQ.some(q => q.format === 'multi_select') && DVQ.some(q => q.exhibit),
    'the CCDV-F bank holds multi-select items (' + DVQ.filter(q => q.format === 'multi_select').length
    + ') and exhibits (' + DVQ.filter(q => q.exhibit).length + ')');
+ok(AOQ.some(q => q.format === 'multi_select'),
+   'the CCAO-F bank holds multi-select items (' + AOQ.filter(q => q.format === 'multi_select').length + ')');
 
 /* The objectives index points back at question ids; nothing regenerates it
    now, so a renamed or removed question would leave a dangling reference. */
@@ -462,8 +484,9 @@ const arCfg = O.simConfig('CCAR-F');
 ok(arCfg.mode === 'scenario' && arCfg.blocks === 4 && arCfg.perBlock === 15
    && arCfg.target === 60 && arCfg.minutes === 120 && arCfg.multi === false,
    'CCAR-F resolves to 4 blocks of 15, 60 questions, 120 minutes, single-select');
-const bare = O.simConfig('CCAO-F');
-ok(bare.mode === 'scenario' && bare.target === 60 && bare.minutes === 120,
+/* CCAR-P is the exam left without a sim block since CCAO-F gained one. */
+const bare = O.simConfig('CCAR-P');
+ok(!EXAMS['CCAR-P'].sim && bare.mode === 'scenario' && bare.target === 60 && bare.minutes === 120,
    'an exam with no sim block falls back to the CCAR-F paper');
 const dvCfg = O.simConfig('CCDV-F');
 ok(dvCfg.mode === 'domain' && dvCfg.target === 53 && dvCfg.minutes === 120 && dvCfg.multi,
@@ -479,6 +502,21 @@ ok(Object.keys(BLUEPRINT).every(d => quotas[d] === BLUEPRINT[d]),
 const q70 = O.simDomainQuotas('CCDV-F', 70);
 ok(Object.values(q70).reduce((a, b) => a + b, 0) === 70,
    'a 70-item paper (the reported change) still sums exactly to 70');
+
+/* CCAO-F's guide weights land on whole numbers at 60 items, so every quota
+   is exact. Set 1 holds exactly one quota per domain, so a quota that drifts
+   by one would leave a domain short or a paper over, with nothing visible. */
+const aoCfg = O.simConfig('CCAO-F');
+ok(aoCfg.mode === 'domain' && aoCfg.target === 60 && aoCfg.minutes === 120 && aoCfg.multi,
+   'CCAO-F is a 60-item, 120-minute domain paper with multi-select');
+const aoQuotas = O.simDomainQuotas('CCAO-F', 60);
+const AO_BLUEPRINT = { a4: 8, a1: 13, a5: 7, a2: 10, a6: 7, a3: 9, a7: 6 };
+ok(Object.keys(AO_BLUEPRINT).every(d => aoQuotas[d] === AO_BLUEPRINT[d])
+   && Object.keys(aoQuotas).length === 7,
+   'CCAO-F quotas for 60 items match the blueprint table: ' + JSON.stringify(aoQuotas));
+const aoPaper = O.buildSitting({ exam: 'CCAO-F' });
+ok(aoPaper.total === 60 && aoPaper.filled === 0 && aoPaper.list.every(it => it.q.exam === 'CCAO-F'),
+   'a CCAO-F paper draws 60 CCAO-F questions with no filler');
 
 QS.push(...DV.questions());
 OBJ.push(...DV.objectives().filter(o => !OBJ.some(x => x.id === o.id)));
