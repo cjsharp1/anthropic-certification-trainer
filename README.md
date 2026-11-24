@@ -115,6 +115,13 @@ feedback after each answer: why your option falls short, why the best one wins,
 the tiebreaker principle that separates them, the rationale, source links, and
 a callout where the live product has moved on since the exam guide.
 
+The start screen also carries a tiebreaker guide: the principles that
+recur across the bank, each with how to spot it, what the runner-up usually
+looks like, and an original worked example, plus a table of familiar symptoms
+and the fix the exam expects first. The same guide is in
+[docs/TIEBREAKERS.md](docs/TIEBREAKERS.md), generated from
+`src/data/data-tiebreakers.js` with `npm run docs:tiebreakers`.
+
 Results come back the way the real score report does — percent correct per test
 objective — plus breakdowns by domain and scenario, and a history table showing
 each objective across attempts. Every past attempt on the start screen can be
@@ -430,6 +437,7 @@ src/                   the app — what app/index.html loads and build.js inline
     data-exams.js      exam blueprints — domains and weights
     data-questions*.js question bank (9 drill + 4 held-out + 4 hard)
     data-sim-*.js      Exam Simulation bank + objectives
+    data-tiebreakers.js tiebreaker guide (start screen + docs/TIEBREAKERS.md)
     data-labs.js       hands-on build projects
     data-starters.js   lab starter files
     data-notes.js      study notes + flashcards
@@ -444,12 +452,14 @@ tools/                 build and audits — never shipped
   notes-consistency.js cross-checks notes against the blueprints
   ui-audit.js          font scale and layout consistency
   html-check.js        tag nesting, head metadata, alt text, anchors
+  tiebreakers-doc.js   writes docs/TIEBREAKERS.md from the guide data
 
-tests/                 behaviour suites (21) — never shipped
+tests/                 behaviour suites (22) — never shipped
   *-test.js
   tts-highlight-regress.js   mutation harness for the highlight suite
 
 docs/                  VERIFICATION.md — hard-tier source audit
+                       TIEBREAKERS.md — generated tiebreaker guide
 .github/workflows/     release.yml — publishes the built file on a v* tag
 .github/ISSUE_TEMPLATE/ forms for wrong answers, bugs and suggestions
 dist/                  the shareable single file (generated)

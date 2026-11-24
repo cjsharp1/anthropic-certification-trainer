@@ -16,7 +16,8 @@
     "audit:ui": "node tools/ui-audit.js",
     "audit:notes": "node tools/notes-consistency.js",
     "check": "node tools/validate.js && node tools/ui-audit.js && node tools/html-check.js index.html app/index.html && node tools/run-tests.js",
-    "audit:html": "node tools/html-check.js index.html app/index.html"
+    "audit:html": "node tools/html-check.js index.html app/index.html",
+    "docs:tiebreakers": "node tools/tiebreakers-doc.js"
   },
   "engines": {
     "node": ">=18"

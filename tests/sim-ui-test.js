@@ -95,12 +95,13 @@ vm.runInContext([
   fs.readFileSync(PATHS.resolve('data-exams.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-tiebreakers.js'), 'utf8'),
   shim,
   fs.readFileSync(PATHS.resolve('strikeout.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('report.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('sim.js'), 'utf8'),
   ';globalThis.__o={initSim,renderSim,simStart,simRender,simPick,simGo,simReview,isStruck,'
-  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,getSIM:function(){return SIM;},REPORT_EXAMS:REPORT_EXAMS,clearSIM:function(){SIM=null;}};'
+  + 'simSubmit,simReviewMissed,simToggleFlag,buildSitting,S,SIM_QUESTIONS,SIM_OBJECTIVES,TIEBREAKERS,REFLEX_N:TIEBREAKER_REFLEXES.firstStep.length,simFeedback,getSIM:function(){return SIM;},REPORT_EXAMS:REPORT_EXAMS,clearSIM:function(){SIM=null;}};'
 ].join('\n;\n'), ctx, { filename: 'sim-ui.js' });
 const O = ctx.__o;
 const view = () => ctx.__view;
@@ -147,7 +148,48 @@ ok(allFull ? /drawn exactly as the real exam does/.test(startText)
            : /tops the paper up/.test(startText),
    allFull ? 'it states a full sitting is drawn as the real exam does'
            : 'it warns that short scenarios are topped up');
-const boxes = find(start, n => n.tag === 'input' && n.type === 'checkbox');
+/* The tiebreaker guide. Each principle is a collapsed <details> whose
+   summary carries the name, the rule and a live count; the count is checked
+   against the bank so a tag that drifts from the questions' wording shows
+   up here as a wrong number, not as a silent zero in the browser. */
+const tbRows = find(start, n => n.tag === 'details' && n._cls.has('simtb'));
+ok(tbRows.length === O.TIEBREAKERS.length,
+   'the guide lists every principle, found ' + tbRows.length);
+/* Quick reflexes are their own section, ahead of the guide. As the last row
+   of the guide they looked like one more principle and were scrolled past. */
+const secList = start.children.filter(n => n.tag === 'details' && n._cls.has('simsec'));
+const rxAt = secList.findIndex(n => n._cls.has('reflex'));
+const tbAt = secList.findIndex(n => /Tiebreakers/.test((n.children[0] && textOf(n.children[0])) || ''));
+ok(rxAt >= 0 && rxAt < tbAt, 'quick reflexes have their own section, above the tiebreakers');
+const rxRows = find(secList[rxAt], n => n._cls && n._cls.has('simreflexrow'));
+ok(rxRows.length === O.REFLEX_N, 'it lists every symptom and first fix, found ' + rxRows.length);
+ok(!tbRows.some(r => /Quick reflexes/.test(textOf(r))), 'and the guide no longer carries them as a row');
+const rc = O.TIEBREAKERS.find(t => t.id === 'root-cause');
+const rcRow = tbRows.find(r => textOf(r).includes(rc.name));
+const rcN = O.SIM_QUESTIONS.filter(q => rc.tags.includes(q.tiebreaker)).length;
+ok(!!rcRow && textOf(rcRow).includes(rc.rule) && textOf(rcRow).includes(rcN + ' questions'),
+   'a row shows its rule and the number of bank questions (' + rcN + ')');
+ok(!!rcRow && textOf(rcRow).includes(rc.example.best) && textOf(rcRow).includes(rc.example.runnerUp),
+   'and opens to a worked example with the best answer and the runner-up');
+/* Layout. The start buttons come first and the reference sections fold to
+   a heading, because opened all at once they buried the objective drill
+   a screen and a half below the buttons. The drill reopens by itself when
+   objectives are already ticked, since that visitor came back to drill. */
+const kids = start.children;
+const firstSec = kids.findIndex(n => n.tag === 'details' && n._cls.has('simsec'));
+const actsAt = kids.findIndex(n => n._cls && n._cls.has('actions'));
+ok(actsAt >= 0 && actsAt < firstSec, 'the start buttons come before every folding section');
+const secs = kids.filter(n => n.tag === 'details' && n._cls.has('simsec'));
+ok(secs.length >= 2 && secs.every(d => !d.open), 'with nothing ticked, the sections start folded');
+const bankBox = kids.find(n => n._cls && n._cls.has('simavail'));
+ok(bankBox && bankBox.open === !allFull, 'the scenario counts fold away while every scenario is full');
+O.S.simObjSel = [O.SIM_OBJECTIVES[0].id];
+O.renderSim();
+const drillSec = BY_ID.simStartBody.children.find(n => n.tag === 'details' && /Drill by test objective/.test(textOf(n)));
+ok(drillSec && drillSec.open, 'the drill opens by itself when objectives are already ticked');
+O.S.simObjSel = [];
+O.renderSim();
+const boxes = find(BY_ID.simStartBody, n => n.tag === 'input' && n.type === 'checkbox');
 ok(boxes.length === 37, 'the objective picker lists all 37 objectives, found ' + boxes.length);
 ok(boxes.every(b => b.checked === false), 'nothing is pre-selected');
 /* An objective with no questions behind it must be un-tickable. Every
@@ -333,6 +375,10 @@ ok(fb.includes(pq.options.find(o => o.key === wrongKey).explanation),
 ok(fb.includes(pq.options.find(o => o.key === pq.correct).explanation),
    'and the correct option');
 ok(/Tiebreaker/.test(fb) && fb.includes(pq.tiebreaker), 'it shows the tiebreaker');
+// A recurring principle's name alone ("Root cause") says little in the
+// moment, so feedback adds the guide's rule when the question has one.
+const pqTb = O.TIEBREAKERS.find(t => t.tags.includes(pq.tiebreaker));
+ok(!pqTb || fb.includes(pqTb.rule), 'and the guide\'s rule for it, when it is a recurring one');
 ok(fb.includes(pq.rationale), 'and the rationale');
 const links = find(BY_ID.simFeedback, n => n.tag === 'a');
 ok(links.length >= 1, 'source links are rendered, found ' + links.length);
