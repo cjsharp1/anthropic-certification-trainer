@@ -39,6 +39,9 @@ function simBank(exam) {
   return exam ? all.filter(q => q.exam === exam) : all;
 }
 function simObjectives() { return typeof SIM_OBJECTIVES === 'undefined' ? [] : SIM_OBJECTIVES; }
+function simTiebreakers() { return typeof TIEBREAKERS === 'undefined' ? [] : TIEBREAKERS; }
+/** The guide entry whose tags include this question's tiebreaker, if any. */
+function simTiebreakerFor(name) { return simTiebreakers().find(t => t.tags.includes(name)) || null; }
 function simScenarioName(id, exam) {
   const ex = EXAMS[exam || simExam()] || {};
   const s = (ex.scenarios || []).find(x => x.id === id);
@@ -407,6 +410,10 @@ function simFeedback(q, picked, order) {
     const t = el('div', 'simtie');
     t.appendChild(el('span', 'simtielabel', 'Tiebreaker'));
     t.appendChild(el('span', null, q.tiebreaker));
+    // A recurring principle gets its one-line rule, so a name like "Root
+    // cause" says what it asks of you without leaving the question.
+    const tb = simTiebreakerFor(q.tiebreaker);
+    if (tb) t.appendChild(el('span', 'simtierule', tb.rule));
     box.appendChild(t);
   }
   if (q.rationale) box.appendChild(el('p', 'simrat', q.rationale));
@@ -756,47 +763,15 @@ function renderSim() {
   const scns = ((EXAMS[examCode] || {}).scenarios || []);
   const ready = scns.filter(s => (counts[s.id] || 0) >= SIM_BLOCK).length;
 
+  /* The page is ordered by what a visit is for. Starting a sitting comes
+     first, then your own past attempts; the drill and objective history,
+     then the reflexes and tiebreaker guide, are opened when wanted, so
+     each folds to a title and one line. Open all at once they pushed the
+     drill a screen and a half below the start buttons. */
   wrap.appendChild(el('p', 'simlede',
     'The real sitting draws ' + SIM_BLOCKS + ' of the ' + scns.length + ' scenarios and asks '
     + SIM_BLOCK + ' questions on each — ' + SIM_TARGET + ' questions in ' + SIM_MINUTES
     + ' minutes, single-select, no feedback until you submit.'));
-  // As on the real exam. Said here because a right-click is not discoverable.
-  wrap.appendChild(el('p', 'muted small',
-    'As in the real exam, right-click an option to rule it out and right-click '
-    + 'again to restore it. On a keyboard, focus the option and press X.'));
-
-  // Say plainly what the bank can and cannot do today, before anyone starts.
-  const avail = bank.length;
-  const note = el('div', 'simavail');
-  note.appendChild(el('div', 'simavailhead', avail + ' questions in the bank'));
-  const detail = ready === scns.length
-    ? el('div', 'muted small', 'A sitting draws ' + SIM_BLOCK + ' questions from each of ' + SIM_BLOCKS + ' scenarios. Every scenario has at least that many, so a full sitting is drawn exactly as the real exam does; the more a scenario holds, the less often a question comes round again.')
-    : el('div', 'muted small',
-        ready + ' of ' + scns.length + ' scenarios have the full ' + SIM_BLOCK + '. '
-        + 'A sitting takes what each drawn scenario has and tops the paper up from the '
-        + 'others to reach ' + SIM_TARGET + '; the extras are shown separately and the '
-        + 'result says how many there were.');
-  note.appendChild(detail);
-  /* Counts in words, not bars. A bar against the deepest scenario, with a
-     tick at the block size, made the reader decode a chart to learn two
-     facts: how many questions a scenario has, and whether that is enough.
-     The sentence above says why the count matters; a short scenario says so
-     beside its count. Three columns, not auto-fit: six scenarios divide
-     evenly into 3, 2 and 1, where auto-fit left one orphaned on its own row. */
-  const grid = el('div', 'simscngrid');
-  scns.forEach(s => {
-    const c = counts[s.id] || 0;
-    const short = c < SIM_BLOCK;
-    const cell = el('div', 'simscncell' + (short ? ' short' : ''));
-    cell.appendChild(el('span', 'simscnt', s.t));
-    const n = el('span', 'simscnn', String(c));
-    if (short) n.appendChild(el('span', 'simscnshort', ' · short of ' + SIM_BLOCK));
-    cell.appendChild(n);
-    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · a sitting draws ' + SIM_BLOCK;
-    grid.appendChild(cell);
-  });
-  note.appendChild(grid);
-  wrap.appendChild(note);
 
   const acts = el('div', 'actions');
   const exam = el('button', 'btn examcta', 'Start exam · timed');
@@ -815,20 +790,193 @@ function renderSim() {
   prac.onclick = () => simStart('practice', {});
   acts.append(exam, prac);
   wrap.appendChild(acts);
+  // As in the real exam. Said here because a right-click is not discoverable.
+  wrap.appendChild(el('p', 'muted small simhint',
+    'As in the real exam, right-click an option to rule it out and right-click '
+    + 'again to restore it. On a keyboard, focus the option and press X.'));
 
-  wrap.appendChild(el('h2', 'labsec', 'Drill by test objective'));
-  wrap.appendChild(el('p', 'muted small',
-    'The real exam breaks its score report down into ' + simObjectives().length
-    + ' objectives. Pick the ones you want to work on — if you have sat the '
-    + 'exam, tick what your own report marked low.'));
-  wrap.appendChild(simObjectivePicker());
+  /* Say plainly what the bank can and cannot do today, before anyone starts.
+     When every scenario is deep enough there is nothing to act on, so the
+     per-scenario counts fold away behind the total. A short scenario opens
+     them, because then the paper is topped up and the reader should see why. */
+  const avail = bank.length;
+  const short = scns.length - ready;
+  const note = el('details', 'simavail');
+  note.open = short > 0;
+  const nsum = el('summary');
+  nsum.appendChild(el('span', 'simavailhead', avail + ' questions in the bank'));
+  nsum.appendChild(el('span', 'muted small', short
+    ? ' · ' + short + ' scenario' + (short === 1 ? '' : 's') + ' short of ' + SIM_BLOCK
+    : ' · every scenario has at least ' + SIM_BLOCK));
+  note.appendChild(nsum);
+  const detail = ready === scns.length
+    ? el('div', 'muted small', 'A sitting draws ' + SIM_BLOCK + ' questions from each of ' + SIM_BLOCKS + ' scenarios. Every scenario has at least that many, so a full sitting is drawn exactly as the real exam does; the more a scenario holds, the less often a question comes round again.')
+    : el('div', 'muted small',
+        ready + ' of ' + scns.length + ' scenarios have the full ' + SIM_BLOCK + '. '
+        + 'A sitting takes what each drawn scenario has and tops the paper up from the '
+        + 'others to reach ' + SIM_TARGET + '; the extras are shown separately and the '
+        + 'result says how many there were.');
+  note.appendChild(detail);
+  /* Counts in words, not bars. A bar against the deepest scenario, with a
+     tick at the block size, made the reader decode a chart to learn two
+     facts: how many questions a scenario has, and whether that is enough.
+     The sentence above says why the count matters; a short scenario says so
+     beside its count. Three columns, not auto-fit: six scenarios divide
+     evenly into 3, 2 and 1, where auto-fit left one orphaned on its own row. */
+  const grid = el('div', 'simscngrid');
+  scns.forEach(s => {
+    const c = counts[s.id] || 0;
+    const isShort = c < SIM_BLOCK;
+    const cell = el('div', 'simscncell' + (isShort ? ' short' : ''));
+    cell.appendChild(el('span', 'simscnt', s.t));
+    const n = el('span', 'simscnn', String(c));
+    if (isShort) n.appendChild(el('span', 'simscnshort', ' · short of ' + SIM_BLOCK));
+    cell.appendChild(n);
+    cell.title = c + ' question' + (c === 1 ? '' : 's') + ' · a sitting draws ' + SIM_BLOCK;
+    grid.appendChild(cell);
+  });
+  note.appendChild(grid);
+  wrap.appendChild(note);
 
-  if (S.simAttempts.filter(a => a.exam === examCode).length) {
+  const attempts = S.simAttempts.filter(a => a.exam === examCode).length;
+  if (attempts) {
     wrap.appendChild(el('h2', 'labsec', 'Your attempts'));
     wrap.appendChild(simAttemptList(examCode));
-    wrap.appendChild(el('h2', 'labsec', 'Objectives across attempts'));
-    wrap.appendChild(simHistoryTable(examCode));
   }
+
+  /* Two pairs. Your objectives first: the drill and the history it is
+     chosen from sit together, so the weak objectives in the history are
+     beside the list you tick them in. Then the study aids, quick reflexes
+     and the tiebreaker guide, which are both about how to pick between
+     options and used to be split up by the drill. */
+
+  // Open when objectives are already ticked: whoever ticked them came back
+  // to drill, and should not have to find the list again.
+  wrap.appendChild(simSection('Drill by test objective',
+    'Practice only the objectives you pick from the ' + simObjectives().length
+    + ' on the score report — if you have sat the exam, the ones yours marked low.',
+    (S.simObjSel || []).length > 0, () => simObjectivePicker()));
+
+  if (attempts) {
+    wrap.appendChild(simSection('Objectives across attempts',
+      'Percent correct on each test objective, attempt by attempt.',
+      false, () => simHistoryTable(examCode)));
+  }
+
+  /* Quick reflexes lead the study aids in their own tinted section. They
+     used to be the last row of the tiebreaker list, styled like the
+     principles above them, and readers scrolled past the most immediately
+     usable thing on the page. */
+  const R = simReflexes();
+  if (R) {
+    const sec = simSection('Quick reflexes',
+      R.firstStep.length + ' familiar symptoms and the fix the exam expects first, and '
+      + R.wrong.length + ' options that are almost never right.',
+      false, () => simReflexList(R));
+    sec.classList.add('reflex');
+    wrap.appendChild(sec);
+  }
+
+  if (simTiebreakers().length) {
+    wrap.appendChild(simSection('Tiebreakers',
+      'When two options both work, these principles pick the best one. '
+      + 'Each comes with how to spot it and a worked example.',
+      false, () => simTiebreakerGuide(bank)));
+  }
+}
+
+/* A start-screen section that folds to its heading and one line. The body
+   is built straight away rather than on first open: the drill's selection
+   has to be live whether or not the section has been opened, and none of
+   these are costly to build. */
+function simSection(title, blurb, open, build) {
+  const det = el('details', 'simsec');
+  det.open = !!open;
+  const sum = el('summary');
+  sum.appendChild(el('h2', 'labsec', title));
+  sum.appendChild(el('span', 'muted small simsecblurb', blurb));
+  det.appendChild(sum);
+  const body = el('div', 'simsecbody');
+  body.appendChild(build());
+  det.appendChild(body);
+  return det;
+}
+
+/* The tiebreaker guide. Each principle is collapsed to its name and rule, so
+   the list reads as a checklist, and opens to how to spot it, what the
+   runner-up looks like, and a worked example. The examples are original to
+   data-tiebreakers.js: showing a bank question with its answer here would
+   spoil it for the sittings that draw it. */
+function simTiebreakerGuide(bank) {
+  // The heading and introduction come from the simSection that holds it.
+  const box = el('div', 'simtbguide');
+
+  const count = t => bank.filter(q => t.tags.includes(q.tiebreaker)).length;
+  simTiebreakers().slice().sort((a, b) => count(b) - count(a)).forEach(t => {
+    const det = el('details', 'simtb');
+    const sum = el('summary');
+    const head = el('span', 'simtbhead');
+    head.appendChild(el('span', 'simtbname', t.name));
+    const n = count(t);
+    head.appendChild(el('span', 'simtbn', n + ' question' + (n === 1 ? '' : 's')));
+    sum.appendChild(head);
+    sum.appendChild(el('span', 'simtbrule', t.rule));
+    det.appendChild(sum);
+
+    const body = el('div', 'simtbbody');
+    const part = (label, text, cls) => {
+      const p = el('div', 'simtbpart' + (cls ? ' ' + cls : ''));
+      p.appendChild(el('div', 'simfblabel', label));
+      p.appendChild(el('div', null, text));
+      return p;
+    };
+    body.appendChild(part('How to spot it', t.spot));
+    body.appendChild(part('The runner-up', t.trap));
+    const ex = t.example;
+    const exBox = el('div', 'simtbex');
+    exBox.appendChild(el('div', 'simfblabel', 'Example'));
+    exBox.appendChild(el('p', 'simtbsit', ex.situation));
+    exBox.appendChild(part('Best', ex.best, 'good'));
+    exBox.appendChild(part('Runner-up', ex.runnerUp, 'bad'));
+    exBox.appendChild(el('p', 'simrat', ex.why));
+    body.appendChild(exBox);
+    det.appendChild(body);
+    box.appendChild(det);
+  });
+
+  return box;
+}
+
+function simReflexes() { return typeof TIEBREAKER_REFLEXES === 'undefined' ? null : TIEBREAKER_REFLEXES; }
+
+/* Symptom → fix pairs as a list, not a table: each pair is read as one
+   thought ("wrong tool, so descriptions"), and on a phone a two-column
+   table squeezed both halves into slivers. */
+function simReflexList(R) {
+  const box = el('div', 'simreflex');
+  box.appendChild(el('div', 'simfblabel', 'Symptom → first fix'));
+  const rows = el('ul', 'simreflexrows');
+  R.firstStep.forEach(r => {
+    const li = el('li', 'simreflexrow');
+    li.appendChild(el('span', 'simreflexsym', r.symptom));
+    li.appendChild(el('span', 'simreflexarrow', '→'));
+    li.appendChild(el('span', 'simreflexfix', r.fix));
+    rows.appendChild(li);
+  });
+  box.appendChild(rows);
+  box.appendChild(el('p', 'muted small',
+    'If the stem says that first fix is already in place, it is testing something else.'));
+  box.appendChild(el('div', 'simfblabel', 'Almost never the answer'));
+  const ul = el('ul', 'simtbwrong');
+  R.wrong.forEach(w => {
+    const li = el('li');
+    li.appendChild(el('span', 'tag ' + (w.level === 'Always' ? 'bad' : 'warn'), w.level + ' wrong'));
+    // A span, not a text node, so the flex gap spaces it from the tag.
+    li.appendChild(el('span', null, w.text));
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  return box;
 }
 
 /* The objective picker. Nothing is ticked by default: whoever opens this has

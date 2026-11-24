@@ -10,7 +10,7 @@ landing), not the app. It has no scripts and is not part of the build.
 ## Commands
 
 ```bash
-npm test            # build dist/, then all 21 suites (tools/run-tests.js)
+npm test            # build dist/, then all 22 suites (tools/run-tests.js)
 npm run validate    # data integrity — run after ANY data-file edit
 npm run check       # validate + UI audit + HTML check + full suite
 npm run build       # write dist/
@@ -22,6 +22,10 @@ dependencies. Node >= 18.
 Run `npm run validate` after editing anything in `src/data/`. It catches a bad
 domain id, a missing `why`, an out-of-range answer index — all of which
 otherwise fail silently by excluding a question from drills.
+
+After editing `data-tiebreakers.js`, also run `npm run docs:tiebreakers`:
+`docs/TIEBREAKERS.md` is generated from it, and a suite fails while the two
+disagree.
 
 ## Releases
 
@@ -64,7 +68,7 @@ by what changed for the person studying:
 - `src/app.js` — the app (~4.7k lines); `src/sim.js`, `src/strikeout.js`
 - `src/data/data-*.js` — question banks, notes, labs, flashcards, scaffolds
 - `tools/` — build and audits, never shipped
-- `tests/` — 21 suites, never shipped
+- `tests/` — 22 suites, never shipped
 - `dist/` — generated, gitignored; rebuild with `npm run build`
 
 ### Adding a data file

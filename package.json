@@ -1,6 +1,6 @@
 {
   "name": "anthropic-certification-trainer",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "A self-contained browser study app for the four Anthropic Claude certifications. No install, no server, no runtime dependencies.",
   "license": "MIT",
@@ -16,7 +16,8 @@
     "audit:ui": "node tools/ui-audit.js",
     "audit:notes": "node tools/notes-consistency.js",
     "check": "node tools/validate.js && node tools/ui-audit.js && node tools/html-check.js index.html app/index.html && node tools/run-tests.js",
-    "audit:html": "node tools/html-check.js index.html app/index.html"
+    "audit:html": "node tools/html-check.js index.html app/index.html",
+    "docs:tiebreakers": "node tools/tiebreakers-doc.js"
   },
   "engines": {
     "node": ">=18"

@@ -383,9 +383,34 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
    Reuses .opt, .dtable/.drow/.dbar and .statstable from above; what follows is
    only what the scenario format needs that the recall quiz does not. */
 .simlede{font-size:1rem;max-width:62ch}
-.simavail{margin:18px 0;padding:14px 16px;background:var(--surface-2);
+.simhint{margin:10px 0 0}
+/* The bank line. Folded to the total while every scenario is deep enough;
+   the per-scenario counts are one click away, and open on their own when a
+   scenario is short. */
+.simavail{margin:18px 0 6px;padding:11px 16px;background:var(--surface-2);
   border:1px solid var(--line);border-radius:var(--r)}
-.simavailhead{font-weight:600;margin-bottom:3px}
+.simavail > summary{cursor:pointer;list-style:none}
+.simavail > summary::-webkit-details-marker{display:none}
+.simavail > summary::after{content:" ▾";font-size:0.72rem;color:var(--fg-dim)}
+.simavail[open] > summary::after{content:" ▴"}
+.simavail[open] > summary{margin-bottom:6px}
+.simavail > summary:focus-visible{outline:2px solid var(--accent);
+  outline-offset:3px;border-radius:4px}
+.simavailhead{font-weight:600}
+/* Start-screen sections that fold to a heading and one line. The heading
+   keeps its .labsec look so open and closed sections read as one list. */
+.simsec{border-top:1px solid var(--line);margin-top:6px}
+.simsec > summary{list-style:none;cursor:pointer;padding:14px 0 12px;
+  display:flex;flex-direction:column;gap:4px}
+.simsec > summary::-webkit-details-marker{display:none}
+.simsec > summary .labsec{margin:0;display:flex;align-items:center;gap:6px}
+.simsec > summary .labsec::after{content:"▾";font-size:0.72rem;transition:transform .15s}
+.simsec[open] > summary .labsec::after{transform:rotate(180deg)}
+.simsec > summary:hover .labsec{color:var(--accent)}
+.simsec > summary:focus-visible{outline:2px solid var(--accent);
+  outline-offset:3px;border-radius:4px}
+.simsecblurb{max-width:72ch}
+.simsecbody{padding-bottom:14px}
 .simscngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   gap:0 28px;margin-top:10px}
 @media (max-width:900px){.simscngrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -443,6 +468,61 @@ h2.sec{font-size:1.12rem;margin:34px 0 14px}
   font-weight:600;color:var(--on-accent);background:var(--clay);
   padding:2px 7px;border-radius:999px}
 .simrat{margin:0;color:var(--fg-dim)}
+/* The rule sits on its own line under the name: the name is a label, the
+   rule is the sentence the reader should carry away. */
+.simtierule{flex-basis:100%;color:var(--fg-dim);font-size:0.95rem}
+/* The tiebreaker guide on the start screen. Collapsed, each row is a name
+   and its rule, so the closed list doubles as a checklist. */
+.simtbguide{margin:0}
+.simtb{border-bottom:1px solid var(--line)}
+.simtb > summary{list-style:none;cursor:pointer;padding:11px 0;
+  display:flex;flex-direction:column;gap:3px}
+.simtb > summary::-webkit-details-marker{display:none}
+.simtb > summary:hover .simtbname{color:var(--accent)}
+.simtb > summary:focus-visible{outline:2px solid var(--accent);
+  outline-offset:3px;border-radius:4px}
+.simtbhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.simtbname{font-weight:600}
+.simtbname::after{content:" ▾";font-size:0.72rem;color:var(--fg-dim)}
+.simtb[open] .simtbname::after{content:" ▴"}
+.simtbn{font-family:var(--f-mono);font-size:0.86rem;color:var(--fg-dim);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.simtbrule{color:var(--fg-dim);font-size:0.95rem;max-width:72ch}
+.simtbbody{display:flex;flex-direction:column;gap:12px;padding:2px 0 16px;
+  max-width:74ch}
+.simtbex{display:flex;flex-direction:column;gap:9px;padding:12px 14px;
+  border-radius:8px;background:var(--surface-2)}
+.simtbsit{margin:0}
+.simtbpart.good,.simtbpart.bad{padding-left:11px;border-left:3px solid var(--line)}
+.simtbpart.good{border-left-color:var(--good)}
+.simtbpart.bad{border-left-color:var(--bad)}
+/* Quick reflexes: the one folding section with a tint and a clay rule, so
+   it reads as a cheat sheet rather than one more heading in the list. */
+.simsec.reflex{margin:28px 0 6px;padding:0 16px;
+  border-radius:var(--r);border:1px solid color-mix(in srgb,var(--clay) 35%,var(--line));
+  border-left:4px solid var(--clay);
+  background:color-mix(in srgb,var(--clay) 7%,var(--surface))}
+.simsec.reflex > summary .labsec{color:var(--clay)}
+.simsec.reflex > summary:hover .labsec{color:var(--accent)}
+.simsec.reflex + .simsec{border-top:none}
+.simreflex{display:flex;flex-direction:column;gap:10px;max-width:74ch}
+.simreflexrows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.simreflexrow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  gap:4px 12px;align-items:baseline;padding:8px 0;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.simreflexrow:last-child{border-bottom:none}
+.simreflexsym{color:var(--fg-dim)}
+.simreflexarrow{color:var(--clay);font-weight:600}
+.simreflexfix{font-weight:600}
+/* On a phone the pair stacks, arrow and fix on the second line. */
+@media (max-width:560px){
+  .simreflexrow{grid-template-columns:auto minmax(0,1fr)}
+  .simreflexsym{grid-column:1 / -1}
+}
+.simtbwrong{margin:0;padding-left:0;list-style:none;display:flex;
+  flex-direction:column;gap:7px}
+.simtbwrong li{display:flex;gap:8px;align-items:baseline}
+.simtbwrong .tag.bad{color:var(--bad);border-color:var(--bad);background:transparent}
 /* Where the product has moved since the guide. Visually distinct because the
    exam still scores the guide's answer as correct. */
 .simnote{padding:10px 13px;border-radius:8px;
@@ -1700,6 +1780,7 @@ body:has(.ttsbar:not([hidden])) .main{padding-bottom:160px}
 <!-- Exam simulation: hand-maintained bank; see README and tests/sim-test.js. -->
 <script src="../src/data/data-sim-questions.js"></script>
 <script src="../src/data/data-sim-objectives.js"></script>
+<script src="../src/data/data-tiebreakers.js"></script>
 <script src="../src/data/data-labs.js"></script>
 <script src="../src/data/data-starters.js"></script>
 <script src="../src/data/data-notes.js"></script>
