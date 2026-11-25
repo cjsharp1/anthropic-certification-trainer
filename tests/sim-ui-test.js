@@ -95,8 +95,10 @@ vm.runInContext([
   fs.readFileSync(PATHS.resolve('data-exams.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-questions-dv.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-questions-ao.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-sim-objectives-dv.js'), 'utf8'),
+  fs.readFileSync(PATHS.resolve('data-sim-objectives-ao.js'), 'utf8'),
   fs.readFileSync(PATHS.resolve('data-tiebreakers.js'), 'utf8'),
   shim,
   // "Select TWO" comes from app.js's list, lifted out whole rather than

@@ -439,7 +439,7 @@ QUESTIONS.push(
         "Alternate between tiers depending on how important each run is"],
   why:"Borderline quality is often an underspecified prompt rather than insufficient capability, and that is cheap to test. Paying for a higher tier to compensate for a vague instruction keeps costing on every run."},
 
-{ id:"hao-a5-05", exam:"CCAO-F", d:"a5", heldOut:true, kind:"scenario",
+{ id:"hao-a5-05", exam:"CCAO-F", d:"a5", heldOut:true, kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"Your team pastes the same style guide into every conversation. Which feature addresses this?",
   a:2,
   opts:["A model tier with a larger window, so the guide always fits",
@@ -448,7 +448,7 @@ QUESTIONS.push(
         "A longer conversation, so the guide is pasted only once per session"],
   why:"Projects exist for standing material that should be present every time, without anyone re-pasting it. A bigger window still requires sending it, a shared document relies on people remembering, and one long conversation only defers the problem."},
 
-{ id:"hao-a5-06", exam:"CCAO-F", d:"a5", heldOut:true, kind:"scenario",
+{ id:"hao-a5-06", exam:"CCAO-F", d:"a5", heldOut:true, kind:"scenario", volatile:true, contentDate:"2026-11-24",
   q:"A question needs information gathered from several sources before it can be answered. What fits?",
   a:1,
   opts:["A Project, with the relevant sources added to its knowledge",

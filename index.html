@@ -242,12 +242,12 @@ footer{
 <header class="mast">
   <p class="kicker">Project overview · 2026-11-20</p>
   <h1>Anthropic Certification Trainer</h1>
-  <p class="standfirst">A single-file study app for the four Anthropic certification exams. 823 questions, 27 study notes and 19 build labs in one HTML file that runs offline with no install, no server and no dependencies.</p>
+  <p class="standfirst">A single-file study app for the four Anthropic certification exams. 843 questions, 27 study notes and 19 build labs in one HTML file that runs offline with no install, no server and no dependencies.</p>
   <p class="cta"><a href="app/">Open the app →</a> <a href="https://github.com/cjsharp1/anthropic-certification-trainer/releases/latest/download/anthropic-certification-trainer.html" download>Download the single file</a></p>
 </header>
 
 <div class="facts">
-  <div class="fact"><span class="n">823</span><span class="l">Questions</span></div>
+  <div class="fact"><span class="n">843</span><span class="l">Questions</span></div>
   <div class="fact"><span class="n">0</span><span class="l">Dependencies</span></div>
   <div class="fact"><span class="n">15,408</span><span class="l">Lines of JS</span></div>
   <div class="fact"><span class="n">21/21</span><span class="l">Suites passing</span></div>
@@ -318,23 +318,24 @@ footer{
       <caption>Certifications</caption>
       <thead><tr><th>Code</th><th>Certification</th><th class="n">Questions</th><th class="n">Domains</th><th class="n">Exam</th></tr></thead>
       <tbody>
-        <tr><td class="mono">CCAO-F</td><td>Associate — Foundations</td><td class="n">174</td><td class="n">7</td><td class="n">60q / 120m</td></tr>
+        <tr><td class="mono">CCAO-F</td><td>Associate — Foundations</td><td class="n">194</td><td class="n">7</td><td class="n">60q / 120m</td></tr>
         <tr><td class="mono">CCDV-F</td><td>Developer — Foundations</td><td class="n">302</td><td class="n">8</td><td class="n">53q / 120m</td></tr>
         <tr><td class="mono">CCAR-F</td><td>Architect — Foundations</td><td class="n">237</td><td class="n">5</td><td class="n">60q / 120m</td></tr>
         <tr><td class="mono">CCAR-P</td><td>Architect — Professional</td><td class="n">156</td><td class="n">7</td><td class="n">63q / 120m</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="sub" style="font-size:0.88rem">Per-exam counts sum above 823 because 46 questions are tagged to both CCAR-F and CCDV-F. Pass mark is 720/1000 on all four.</p>
+  <p class="sub" style="font-size:0.88rem">Per-exam counts sum above 843 because 46 questions are tagged to both CCAR-F and CCDV-F. Pass mark is 720/1000 on all four.</p>
 
   <div class="tw">
     <table>
       <caption>Content units</caption>
       <thead><tr><th>Unit</th><th class="n">Count</th><th>What it is</th></tr></thead>
       <tbody>
-        <tr><td>Recall questions</td><td class="n">823</td><td>491 drill, 267 held-out for practice exams, 65 hard tier</td></tr>
+        <tr><td>Recall questions</td><td class="n">843</td><td>511 drill, 267 held-out for practice exams, 65 hard tier</td></tr>
         <tr><td>Simulation questions</td><td class="n">303</td><td>Separate CCAR-F bank, scenario-shaped, never mixed into drills</td></tr>
         <tr><td>CCDV-F simulation questions</td><td class="n">62</td><td>First set: domain-weighted papers, multiple-response items and code exhibits</td></tr>
+        <tr><td>CCAO-F simulation questions</td><td class="n">60</td><td>First set: one domain-weighted 60-item paper, with multiple-response items</td></tr>
         <tr><td>Study notes</td><td class="n">27</td><td>One per domain, concept-first rather than bullet lists</td></tr>
         <tr><td>Takeaways</td><td class="n">234</td><td>Pulled-out conclusions, collected at the top of each note</td></tr>
         <tr><td>Flashcards</td><td class="n">194</td><td>Atomic facts, Leitner spacing across five boxes</td></tr>
@@ -386,7 +387,7 @@ footer{
     <li><b>Blueprints first.</b>
       <p>The four exam blueprints in <code>data-exams.js</code> — domains, weights, question counts, pass marks — came before any question. Domain weights must sum to 100.0 per exam, and <code>validate.js</code> still asserts it on every run.</p></li>
     <li><b>Recall bank, written in batches.</b>
-      <p>823 questions across 27 data files. A question carrying a domain id that does not exist in its exam would be silently excluded from drills rather than error, so the validator checks domain ids against the blueprint.</p></li>
+      <p>843 questions across 30 data files. A question carrying a domain id that does not exist in its exam would be silently excluded from drills rather than error, so the validator checks domain ids against the blueprint.</p></li>
     <li><b>Held-out and hard tiers split off.</b>
       <p>267 questions reserved so a practice exam can draw material the drills never show, plus a 65-question hard tier. Every hard-tier answer is checked against a primary source before shipping, logged in <code>docs/VERIFICATION.md</code>.</p></li>
     <li><b>Notes, flashcards and labs.</b>

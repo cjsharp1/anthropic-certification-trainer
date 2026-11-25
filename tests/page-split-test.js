@@ -253,11 +253,12 @@ H('The simulation gate drives every mode control consistently');
     else if (here) ok(hidden('btnHard') === false,
        code + ': hard tier still offered, the simulation does not hold its questions');
   });
-  /* Two certifications have a bank: CCAR-F since the simulation was built,
-     CCDV-F since its set 1 was imported on 2026-11-24. If that changes, the
+  /* Three certifications have a bank: CCAR-F since the simulation was
+     built, CCDV-F since its set 1 was imported on 2026-11-24, and CCAO-F
+     since its set 1 was imported in the same week. If that changes, the
      count below should be updated deliberately, not silently. */
-  ok(A.EXAM_ORDER.filter(c => A.simAvailable(c)).length === 2,
-     'two certifications have a simulation bank');
+  ok(A.EXAM_ORDER.filter(c => A.simAvailable(c)).length === 3,
+     'three certifications have a simulation bank');
 }
 
 console.log(fail ? String.fromCharCode(10) + fail + ' FAILURES'
