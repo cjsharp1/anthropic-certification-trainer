@@ -1489,9 +1489,9 @@ const NOTES = [
       ]},
     { h: "Consistency is not truth",
       body:[
-        "Two runs that agree can both be wrong. Re-running measures stability of the generator, not correspondence with the world. Teams that treat agreement as verification systematically miss stable hallucinations — the model has a preferred invented detail and repeats it.",
+        "Two runs that agree can both be wrong. Re-running measures stability of the generator, not correspondence with the world. Teams that treat agreement as verification systematically miss stable hallucinations — the model has a preferred invented detail and repeats it. Consistency feels like evidence because humans use agreement that way with independent witnesses; two samples from one model are not independent witnesses.",
         { key: "Agreement between runs is <strong>stability</strong>. Only the source settles truth." },
-        "Internal contradictions are a different signal and a useful one. If section two of a briefing contradicts section five, do not average them or pick the more fluent paragraph. Go to the source and resolve which claim, if either, is grounded. Contradiction is a red flag that review must escalate from skim to check.",
+        "Internal contradictions are a different signal and a useful one. If section two of a briefing contradicts section five, do not average them or pick the more fluent paragraph. Go to the source and resolve which claim, if either, is grounded. Contradiction is a red flag that review must escalate from skim to check — the draft has already told you it is unreliable somewhere.",
         { key: "When two parts of one answer disagree, <strong>check the source</strong> — do not reconcile by preference or polish." },
         { why:{ q: "Why do fluent contradictions survive casual review?", a: "Because each paragraph locally reads well. The error is relational: only reading across sections, or against the source, exposes it. Skimming for tone misses it every time." } }
       ]},
@@ -1617,7 +1617,7 @@ const NOTES = [
       body:[
         "Communicating value and limitations is an explicit objective. The failure mode is overselling: promising consistency the tool cannot deliver, then losing trust on the first visible error.",
         { key: "Describe both sides — what it reliably does, and what it gets wrong — <strong>before</strong> anyone depends on it. Discovered limitations cost far more trust than disclosed ones." },
-        "When someone asks to 'replace the analysts' or 'automate the whole process', reframe to a bounded pilot: which step, which review, measured how. Escalate when the request crosses policy, technical design, or stakes you cannot competently own.",
+        "When someone asks to 'replace the analysts' or 'automate the whole process', reframe to a bounded pilot: which step, which review, measured how. Escalate when the request crosses policy, technical design, or stakes you cannot competently own. Scope language matters — 'assist the weekly report' and 'replace the reporting function' are different commitments, and the exam rewards the Associate who keeps them distinct.",
         { exam: "Escalation is part of the Associate role by design. The guide positions Associates as recognizing limits and handing complex or technical work to Architects and Developers — knowing what not to take on is a tested competency." },
         { warn: "Promising output consistent enough to skip review is a trust debt. Consistency is not accuracy, and review load belongs in the value conversation from the start." }
       ]},
